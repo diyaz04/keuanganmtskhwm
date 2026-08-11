@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 142.1 70.6% 45.3%; /* Green accent */
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 142.1 70.6% 45.3%;
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  /* Button Gradient Polish */
+  .bg-primary {
+    @apply bg-gradient-to-r from-[#16a34a] to-[#22c55e] border-none shadow-sm transition-all hover:brightness-110 !important;
+  }
+  
+  /* Semantic Badges */
+  .badge-pending {
+    @apply bg-yellow-100 text-yellow-800 border-yellow-200;
+  }
+  .badge-approved, .badge-paid, .badge-published {
+    @apply bg-green-100 text-green-800 border-green-200;
+  }
+  .badge-rejected, .badge-failed {
+    @apply bg-red-100 text-red-800 border-red-200;
+  }
+}
