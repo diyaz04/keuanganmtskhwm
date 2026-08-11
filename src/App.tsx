@@ -36,10 +36,11 @@ function App() {
             <Route path="/" element={
               <>
                 <header className="border-b p-4 flex gap-4 items-center bg-white shadow-sm sticky top-0 z-10 print:hidden">
-                  <Link to="/" className="flex items-center gap-2 font-bold text-lg text-primary mr-auto">
+                  <Link to="/" className="hidden sm:flex items-center gap-2 font-bold text-lg text-primary mr-auto">
                     <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
                     Sistem Keuangan MTs
                   </Link>
+                  <div className="flex-1 sm:hidden" />
                   <nav className="flex gap-4">
                     <Link to="/portal" className={buttonVariants({ variant: "ghost" })}>
                       Portal Guru & Wali
@@ -56,7 +57,7 @@ function App() {
             } />
             <Route path="/portal/*" element={
               <>
-                <header className="border-b p-4 flex gap-4 items-center bg-white shadow-sm sticky top-0 z-10 print:hidden">
+                <header className="hidden sm:flex border-b p-4 gap-4 items-center bg-white shadow-sm sticky top-0 z-10 print:hidden">
                   <Link to="/" className="flex items-center gap-2 font-bold text-lg text-primary mr-auto">
                     <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
                     Sistem Keuangan MTs
