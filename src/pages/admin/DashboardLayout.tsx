@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
@@ -27,6 +27,10 @@ export default function DashboardLayout() {
   const location = useLocation()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [pendingCount, setPendingCount] = useState(0)
+  const [showMobileProfileMenu, setShowMobileProfileMenu] = useState(false)
+  const mobileProfileMenuRef = useRef<HTMLDivElement>(null)
+  const [showMobileNotifMenu, setShowMobileNotifMenu] = useState(false)
+  const mobileNotifMenuRef = useRef<HTMLDivElement>(null)
   const [acknowledgedCount, setAcknowledgedCount] = useState(() => {
     return parseInt(localStorage.getItem('acknowledgedPendingCount') || '0')
   })
@@ -67,6 +71,19 @@ export default function DashboardLayout() {
   }, [location.pathname, pendingCount, acknowledgedCount])
 
   const displayCount = Math.max(0, pendingCount - acknowledgedCount)
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (mobileProfileMenuRef.current && !mobileProfileMenuRef.current.contains(event.target as Node)) {
+        setShowMobileProfileMenu(false)
+      }
+      if (mobileNotifMenuRef.current && !mobileNotifMenuRef.current.contains(event.target as Node)) {
+        setShowMobileNotifMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const getInitials = (fullName: string | null | undefined, email: string | null | undefined) => {
     if (fullName) {
@@ -240,18 +257,110 @@ export default function DashboardLayout() {
           </div>
           
           <div className="flex items-center gap-3.5">
-            {/* Notification Bell */}
-            <div className="relative w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-500 hover:bg-slate-100 transition-colors cursor-pointer border border-slate-100">
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-red-500"></span>
-              <Bell size={15} />
+            {/* Notification Bell Button & Dropdown */}
+            <div ref={mobileNotifMenuRef} className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMobileNotifMenu(v => !v)
+                  if (displayCount > 0) {
+                    setAcknowledgedCount(pendingCount)
+                    localStorage.setItem('acknowledgedPendingCount', pendingCount.toString())
+                  }
+                }}
+                className="relative w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-500 hover:bg-slate-100 transition-colors cursor-pointer border border-slate-100"
+              >
+                {displayCount > 0 ? (
+                  <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[8px] font-bold flex items-center justify-center shadow">
+                    {displayCount > 99 ? '99+' : displayCount}
+                  </span>
+                ) : (
+                  <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                )}
+                <Bell size={15} />
+              </button>
+
+              {/* Mobile Notification Dropdown */}
+              {showMobileNotifMenu && (
+                <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-2xl shadow-xl border border-slate-100 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                  {/* Header */}
+                  <div className="px-4 py-2.5 border-b border-slate-100 flex items-center justify-between">
+                    <p className="font-bold text-xs text-slate-800">Notifikasi</p>
+                    {displayCount > 0 && (
+                      <span className="px-1.5 py-0.5 rounded-full bg-red-100 text-red-600 text-[8px] font-bold">
+                        {displayCount} belum dibaca
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="max-h-60 overflow-y-auto divide-y divide-slate-50">
+                    {displayCount > 0 ? (
+                      <Link 
+                        to="/admin/bendahara" 
+                        onClick={() => setShowMobileNotifMenu(false)}
+                        className="p-3 hover:bg-slate-50 transition-colors flex gap-2 block text-left"
+                      >
+                        <div className="w-6 h-6 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <Building2 size={12} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[10px] font-bold text-slate-800 leading-tight">Persetujuan Pembayaran</p>
+                          <p className="text-[9px] text-slate-500 mt-0.5 leading-normal">
+                            Ada <span className="font-bold text-amber-600">{displayCount} pembayaran</span> dari wali murid yang memerlukan verifikasi Anda.
+                          </p>
+                        </div>
+                      </Link>
+                    ) : (
+                      <div className="px-4 py-6 text-center text-slate-400 text-[10px]">
+                        Tidak ada notifikasi baru
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
             
-            {/* Avatar DN */}
-            <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-sm overflow-hidden uppercase">
-              {avatarUrl ? (
-                <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-              ) : (
-                getInitials(nama, user?.email)
+            {/* Avatar Button & Dropdown */}
+            <div ref={mobileProfileMenuRef} className="relative">
+              <button
+                onClick={() => setShowMobileProfileMenu(v => !v)}
+                className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-sm overflow-hidden uppercase focus:outline-none hover:ring-2 hover:ring-emerald-500/30 transition-all"
+              >
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  getInitials(nama, user?.email)
+                )}
+              </button>
+
+              {/* Mobile Profile Dropdown Menu */}
+              {showMobileProfileMenu && (
+                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-xl border border-slate-100 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="px-4 py-2.5 border-b border-slate-50">
+                    <p className="font-bold text-xs text-slate-800 truncate">{nama || 'User'}</p>
+                    <p className="text-[10px] font-bold text-emerald-600 uppercase mt-0.5">{role}</p>
+                  </div>
+                  <div className="p-1">
+                    <Link
+                      to="/admin/settings"
+                      onClick={() => setShowMobileProfileMenu(false)}
+                      className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-50 rounded-xl transition-colors w-full text-left"
+                    >
+                      <Settings size={14} className="text-slate-400" />
+                      Pengaturan
+                    </Link>
+                    <button
+                      onClick={() => {
+                        setShowMobileProfileMenu(false)
+                        handleSignOut()
+                      }}
+                      className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-xl transition-colors w-full text-left"
+                    >
+                      <LogOut size={14} className="text-red-500" />
+                      Keluar
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
           </div>
@@ -341,7 +450,7 @@ export default function DashboardLayout() {
           </div>
         </div>
 
-        <main className="flex-1 p-6 pb-24 md:pb-6 lg:p-8 overflow-y-auto print:overflow-visible print:p-0 print:block">
+        <main className="flex-1 p-4 pb-24 md:p-6 md:pb-6 lg:p-8 overflow-y-auto print:overflow-visible print:p-0 print:block">
           <Outlet />
         </main>
 

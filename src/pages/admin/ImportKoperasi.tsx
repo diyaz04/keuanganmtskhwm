@@ -283,8 +283,8 @@ export default function ImportKoperasi() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Import Koperasi</h1>
-        <p className="text-muted-foreground mt-2">
+        <h1 className="text-xl md:text-3xl font-bold tracking-tight">Import Koperasi</h1>
+        <p className="text-xs md:text-sm text-muted-foreground mt-1">
           Unggah file Excel tagihan Koperasi Bina Sejahtera untuk diintegrasikan ke potongan gaji bulanan.
         </p>
       </div>

@@ -167,7 +167,7 @@ export default function StudentDetail() {
         <Button variant="outline" size="icon" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h1 className="text-2xl font-bold tracking-tight">Detail Siswa</h1>
+        <h1 className="text-xl md:text-2xl font-bold tracking-tight">Detail Siswa</h1>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">

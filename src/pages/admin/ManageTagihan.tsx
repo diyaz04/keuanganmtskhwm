@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Heart, Settings, Ban, Download } from 'lucide-react'
 import * as XLSX from 'xlsx'
+import { cn } from '@/lib/utils'
 
 type Student = {
   id: string
@@ -101,6 +102,7 @@ export default function ManageTagihan() {
 
   // Modal Pembayaran Manual State
   const [activePaymentBill, setActivePaymentBill] = useState<Bill | null>(null)
+  const [activeMobileSectionTab, setActiveMobileSectionTab] = useState<'ringkasan' | 'buat' | 'daftar'>('ringkasan')
   const [paymentMode, setPaymentMode] = useState<'full' | 'partial' | 'advance'>('full')
   const [partialAmount, setPartialAmount] = useState('')
   const [advanceMonths, setAdvanceMonths] = useState('1')
@@ -765,11 +767,11 @@ export default function ManageTagihan() {
   const years = Array.from({length: 5}, (_, i) => new Date().getFullYear() - 1 + i)
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="p-0 md:p-6 space-y-6 max-w-7xl mx-auto">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Manajemen Tagihan</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className="text-xl md:text-3xl font-bold tracking-tight">Manajemen Tagihan</h1>
+          <p className="text-xs md:text-sm text-muted-foreground mt-1">
             Kelola data tagihan siswa, buat tagihan baru, dan pantau status pembayaran.
           </p>
         </div>
@@ -782,37 +784,54 @@ export default function ManageTagihan() {
         </Link>
       </div>
 
+      {/* Mobile Section Tabs */}
+      <div className="md:hidden bg-slate-100 p-1.5 rounded-2xl border border-slate-200/50">
+        <Tabs value={activeMobileSectionTab} onValueChange={(val) => setActiveMobileSectionTab(val as any)} className="w-full">
+          <TabsList className="grid w-full grid-cols-3 bg-transparent">
+            <TabsTrigger value="ringkasan" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm text-xs font-semibold py-2">Ringkasan</TabsTrigger>
+            <TabsTrigger value="buat" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm text-xs font-semibold py-2">Buat Baru</TabsTrigger>
+            <TabsTrigger value="daftar" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm text-xs font-semibold py-2">Daftar</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className={cn(
+        "grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-3",
+        activeMobileSectionTab === 'ringkasan' ? 'grid' : 'hidden md:grid'
+      )}>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Tagihan Aktif</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between pb-1 sm:pb-2 p-3 sm:p-6">
+            <CardTitle className="text-[10px] sm:text-sm font-medium">Total Tagihan Aktif</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalAktif}</div>
+          <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+            <div className="text-sm sm:text-2xl font-bold">{totalAktif}</div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Belum Dibayar</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between pb-1 sm:pb-2 p-3 sm:p-6">
+            <CardTitle className="text-[10px] sm:text-sm font-medium">Belum Dibayar</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{totalBelumBayar}</div>
+          <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+            <div className="text-sm sm:text-2xl font-bold text-red-600">{totalBelumBayar}</div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Sudah Lunas</CardTitle>
+        <Card className="col-span-2 md:col-span-1">
+          <CardHeader className="flex flex-row items-center justify-between pb-1 sm:pb-2 p-3 sm:p-6">
+            <CardTitle className="text-[10px] sm:text-sm font-medium">Sudah Lunas</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{totalLunas}</div>
+          <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+            <div className="text-sm sm:text-2xl font-bold text-green-600">{totalLunas}</div>
           </CardContent>
         </Card>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Form Create Bill */}
-        <Card className="md:col-span-1 h-fit">
+        <Card className={cn(
+          "md:col-span-1 h-fit",
+          activeMobileSectionTab === 'buat' ? 'block' : 'hidden md:block'
+        )}>
           <CardHeader>
             <CardTitle>Buat Tagihan Baru</CardTitle>
             <CardDescription>
@@ -1152,7 +1171,10 @@ export default function ManageTagihan() {
         </Card>
 
         {/* Bills Table */}
-        <Card className="md:col-span-2">
+        <Card className={cn(
+          "md:col-span-2",
+          activeMobileSectionTab === 'daftar' ? 'block' : 'hidden md:block'
+        )}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
             <div>
               <CardTitle>Daftar Tagihan</CardTitle>
@@ -1257,14 +1279,91 @@ export default function ManageTagihan() {
                 </div>
               </div>
             )}
-            <div className="border rounded-md overflow-x-auto">
+            {/* Mobile List View (md:hidden) */}
+            <div className="md:hidden space-y-3">
+              {loading ? (
+                <div className="text-center py-8 text-gray-500">Memuat data...</div>
+              ) : paginatedBills.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">Tidak ada tagihan ditemukan</div>
+              ) : (
+                paginatedBills.map((bill) => (
+                  <div key={bill.id} className="bg-white border rounded-xl p-3.5 shadow-sm space-y-2.5">
+                    {/* Top Section: Checkbox + Name & NISN */}
+                    <div className="flex items-start gap-2.5">
+                      {bill.status !== 'paid' && (
+                        <input 
+                          type="checkbox" 
+                          className="w-4.5 h-4.5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer mt-0.5 flex-shrink-0"
+                          checked={selectedBills.has(bill.id)}
+                          onChange={() => handleSelect(bill.id)}
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <h5 className="font-extrabold text-slate-800 text-xs truncate leading-normal">{bill.students?.nama}</h5>
+                        <p className="text-[10px] text-slate-500 mt-0.5 leading-none">
+                          {bill.students?.nisn} &middot; Angkatan {bill.students?.angkatan || '-'} {bill.students?.kelas ? `(Kelas ${bill.students.kelas})` : '(Keluar/Alumni)'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Mid Section: Tagihan Info */}
+                    <div className="grid grid-cols-2 gap-2 text-xs py-2 border-t border-b border-slate-50/80">
+                      <div>
+                        <span className="text-[9px] font-bold text-slate-400 block uppercase tracking-wider">Jenis Tagihan</span>
+                        <span className="font-bold text-slate-700 mt-0.5 block">{bill.jenis_tagihan}</span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-bold text-slate-400 block uppercase tracking-wider">Nominal</span>
+                        <span className="font-extrabold text-slate-800 mt-0.5 block">
+                          {formatCurrency(bill.nominal)}
+                          {bill.status === 'partial' && (
+                            <span className="text-[9px] font-bold text-red-500 block mt-0.5">
+                              Sisa: {formatCurrency(bill.nominal - (bill.nominal_terbayar || 0))}
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Bottom Section: Status, Date, Actions */}
+                    <div className="flex items-center justify-between gap-2 pt-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold capitalize
+                          ${bill.status === 'paid' ? 'bg-green-50 text-green-700 border border-green-200' : 
+                            bill.status === 'partial' ? 'bg-yellow-50 text-yellow-700 border border-yellow-200' : 
+                            'bg-red-50 text-red-700 border border-red-200'}`}>
+                          {bill.status === 'paid' ? 'Lunas' : 
+                           bill.status === 'partial' ? 'Sebagian' : 'Belum Bayar'}
+                        </span>
+                        <span className="text-[9px] text-slate-400">{new Date(bill.created_at).toLocaleDateString('id-ID')}</span>
+                      </div>
+                      
+                      {bill.status !== 'paid' && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="text-[10px] h-7 px-3 font-bold text-blue-600 border-blue-200 hover:bg-blue-50 bg-white rounded-lg shadow-sm"
+                          onClick={() => handleBayarManual(bill)}
+                          disabled={submitting}
+                        >
+                          Bayar Manual
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Desktop Table View (hidden md:block) */}
+            <div className="hidden md:block border rounded-md overflow-x-auto">
               <table className="w-full text-sm text-left text-gray-500">
                 <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b">
                   <tr>
                     <th scope="col" className="p-4 w-4">
                       <input 
                         type="checkbox" 
-                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer" 
+                        className="w-4.5 h-4.5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer" 
                         onChange={handleSelectAll}
                         checked={paginatedBills.length > 0 && paginatedBills.filter(b => b.status !== 'paid').length > 0 && paginatedBills.filter(b => b.status !== 'paid').every(b => selectedBills.has(b.id))}
                       />
@@ -1346,11 +1445,12 @@ export default function ManageTagihan() {
 
             {/* Pagination Controls */}
             {filteredBills.length > 0 && (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 text-sm text-gray-500">
-                <div className="flex items-center gap-2">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-6 pt-4 border-t border-slate-100 text-xs md:text-sm text-slate-500 w-full">
+                {/* Tampilkan data per halaman */}
+                <div className="flex items-center justify-center gap-2 w-full md:w-auto">
                   <span>Tampilkan:</span>
                   <select
-                    className="border-gray-300 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500 p-1"
+                    className="border-slate-200 rounded-lg text-xs md:text-sm focus:ring-indigo-500 focus:border-indigo-500 p-1.5 bg-white shadow-sm"
                     value={itemsPerPage}
                     onChange={(e) => {
                       setItemsPerPage(Number(e.target.value))
@@ -1364,19 +1464,25 @@ export default function ManageTagihan() {
                   </select>
                   <span>data per halaman</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span>Menampilkan {startIndex + 1} - {Math.min(startIndex + itemsPerPage, totalItems)} dari {totalItems} data</span>
-                  <div className="flex items-center space-x-1 ml-4">
+
+                {/* Info & Navigasi Halaman */}
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full md:w-auto">
+                  <span className="text-center sm:text-left text-slate-400">
+                    Menampilkan <span className="font-semibold text-slate-700">{startIndex + 1} - {Math.min(startIndex + itemsPerPage, totalItems)}</span> dari <span className="font-semibold text-slate-700">{totalItems}</span> data
+                  </span>
+                  
+                  {/* Buttons */}
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                       disabled={safeCurrentPage === 1}
-                      className="px-2 py-1 h-8"
+                      className="px-3 h-8 text-xs font-semibold rounded-lg bg-white"
                     >
-                      Sebelumnnya
+                      Sebelumnya
                     </Button>
-                    <span className="px-3 py-1 font-medium text-gray-700 bg-gray-100 rounded-md">
+                    <span className="px-3 h-8 flex items-center justify-center font-bold text-slate-700 bg-slate-100 rounded-lg text-xs min-w-[50px]">
                       {safeCurrentPage} / {totalPages}
                     </span>
                     <Button
@@ -1384,7 +1490,7 @@ export default function ManageTagihan() {
                       size="sm"
                       onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                       disabled={safeCurrentPage === totalPages}
-                      className="px-2 py-1 h-8"
+                      className="px-3 h-8 text-xs font-semibold rounded-lg bg-white"
                     >
                       Selanjutnya
                     </Button>

@@ -19,7 +19,8 @@ import SettingsPage from "@/pages/admin/Settings"
 import VerifyDocument from "@/pages/public/VerifyDocument"
 import { ProtectedRoute } from "@/components/ProtectedRoute"
 import { AuthProvider } from "@/contexts/AuthContext"
-import { buttonVariants } from "@/components/ui/button"
+
+import { Lock } from "lucide-react"
 
 function RoleBasedRedirect() {
   return <Navigate to="/admin/menu" replace />
@@ -35,22 +36,22 @@ function App() {
             {/* Public Routes with standard layout */}
             <Route path="/" element={
               <>
-                <header className="border-b p-4 flex gap-4 items-center bg-white shadow-sm sticky top-0 z-10 print:hidden">
-                  <Link to="/" className="hidden sm:flex items-center gap-2 font-bold text-lg text-primary mr-auto">
-                    <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
-                    Sistem Keuangan MTs
+                <header className="border-b border-slate-100 p-4 flex justify-between items-center bg-white shadow-sm sticky top-0 z-50 print:hidden">
+                  <Link to="/" className="flex items-center gap-3">
+                    <img src="/logo.png" alt="Logo MTs" className="w-10 h-10 object-contain" />
+                    <div>
+                      <h1 className="font-extrabold text-sm md:text-base text-emerald-800 leading-none">MTs KH A WAHAB MUHSIN</h1>
+                      <p className="text-[9px] md:text-[10px] text-slate-400 mt-1 leading-none font-semibold uppercase tracking-wider">Unggul dalam Prestasi, Berakhlak Islami</p>
+                    </div>
                   </Link>
-                  <div className="flex-1 sm:hidden" />
-                  <nav className="flex gap-4">
-                    <Link to="/portal" className={buttonVariants({ variant: "ghost" })}>
-                      Portal Guru & Wali
-                    </Link>
-                    <Link to="/admin/login" className={buttonVariants({ variant: "default" })}>
+                  <nav className="flex-shrink-0 ml-2">
+                    <Link to="/admin/login" className="inline-flex items-center gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[10px] md:text-xs px-2.5 py-1.5 md:px-4 md:py-2 rounded-xl transition-all shadow-md flex-shrink-0">
+                      <Lock className="w-3 h-3 md:w-3.5 md:h-3.5" />
                       Login Admin
                     </Link>
                   </nav>
                 </header>
-                <main className="flex-1 max-w-7xl mx-auto w-full p-4 md:p-8 print:p-0">
+                <main className="flex-1 w-full print:p-0">
                   <Landing />
                 </main>
               </>
@@ -71,7 +72,7 @@ function App() {
 
             {/* Admin Login Route */}
             <Route path="/admin/login" element={
-              <main className="flex-1 max-w-7xl mx-auto w-full p-4 md:p-8">
+              <main className="flex-1 w-full print:p-0">
                 <Login />
               </main>
             } />

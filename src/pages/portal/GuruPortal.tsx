@@ -184,6 +184,16 @@ export default function GuruPortal({ user }: GuruPortalProps) {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka)
   }
 
+  const formatPeriode = (periode: string) => {
+    try {
+      const [year, month] = periode.split('-')
+      const date = new Date(parseInt(year), parseInt(month) - 1)
+      return date.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
+    } catch {
+      return periode
+    }
+  }
+
   if (loading) {
     return <div className="text-center py-8 text-muted-foreground animate-pulse">Memuat riwayat penggajian...</div>
   }
@@ -259,123 +269,242 @@ export default function GuruPortal({ user }: GuruPortalProps) {
                 Belum ada data penggajian untuk akun Anda.
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left">
-                  <thead className="bg-muted/50 text-muted-foreground uppercase text-xs">
-                    <tr>
-                      <th className="px-4 py-3 font-medium rounded-tl-lg">Periode</th>
-                      <th className="px-4 py-3 font-medium text-right">Penerimaan</th>
-                      <th className="px-4 py-3 font-medium text-right">Potongan</th>
-                      <th className="px-4 py-3 font-medium text-right">Gaji Bersih</th>
-                      <th className="px-4 py-3 font-medium text-center">Status</th>
-                      <th className="px-4 py-3 font-medium text-center rounded-tr-lg">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y border-b">
-                    {records.map((record) => (
-                      <Fragment key={record.id}>
-                        <tr className="hover:bg-muted/20 transition-colors group">
-                          <td className="px-4 py-4 font-medium">{record.periode}</td>
-                          <td className="px-4 py-4 text-right">{formatRupiah(record.gaji_pokok)}</td>
-                          <td className="px-4 py-4 text-right text-destructive">{formatRupiah(record.total_potongan)}</td>
-                          <td className="px-4 py-4 text-right font-bold text-primary">{formatRupiah(record.gaji_bersih)}</td>
-                          <td className="px-4 py-4 text-center">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
-                              ${record.status === 'paid' ? 'badge-paid' : 
-                                record.status === 'published' ? 'badge-published' : 
-                                'badge-pending'}`}>
-                              {record.status}
-                            </span>
-                          </td>
-                          <td className="px-4 py-4 text-center">
-                            <div className="flex items-center justify-center space-x-2">
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                onClick={() => toggleRow(record.id)}
-                                className="h-8"
-                              >
-                                Detail
-                                {expandedRows.has(record.id) ? (
-                                  <ChevronUp className="ml-1 w-4 h-4" />
-                                ) : (
-                                  <ChevronDown className="ml-1 w-4 h-4" />
-                                )}
-                              </Button>
-                              <Button 
-                                variant="default" 
-                                size="sm" 
-                                onClick={() => handlePrint(record)}
-                                disabled={record.status === 'draft'}
-                                className="h-8 bg-emerald-600 hover:bg-emerald-700"
-                              >
-                                <Printer className="w-4 h-4 mr-1" />
-                                Slip
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                        
-                        {/* Expanded Details Row */}
-                        {expandedRows.has(record.id) && (
-                          <tr className="bg-muted/10 border-b-0">
-                            <td colSpan={6} className="px-4 py-4">
-                              <div className="max-w-4xl ml-auto mr-auto bg-background rounded-lg border p-4 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {/* Kolom Penerimaan */}
-                                <div>
-                                  <h4 className="font-semibold mb-3 border-b pb-2">Rincian Penerimaan ({record.periode})</h4>
-                                  <ul className="space-y-2">
-                                    {record.penghasilan_details ? (
-                                      <>
-                                        {Object.entries(record.penghasilan_details).map(([key, value]) => (
-                                          <li key={key} className="flex justify-between text-sm">
-                                            <span className="text-muted-foreground">{key}</span>
-                                            <span className="font-medium text-emerald-600">{formatRupiah(value as number)}</span>
-                                          </li>
-                                        ))}
-                                        <li className="flex justify-between text-sm font-bold border-t pt-2 mt-2">
-                                          <span>Total Penerimaan</span>
-                                          <span className="text-emerald-600">{formatRupiah(record.gaji_pokok)}</span>
-                                        </li>
-                                      </>
-                                    ) : (
-                                      <li className="flex justify-between text-sm">
-                                        <span className="text-muted-foreground">Gaji Pokok & Tunjangan</span>
-                                        <span className="font-medium text-emerald-600">{formatRupiah(record.gaji_pokok)}</span>
-                                      </li>
-                                    )}
-                                  </ul>
-                                </div>
+              <>
+                {/* Mobile Card List (md:hidden) */}
+                <div className="md:hidden space-y-4">
+                  {records.map((record) => {
+                    const isExpanded = expandedRows.has(record.id)
+                    return (
+                      <div key={record.id} className="bg-white border rounded-2xl p-4 shadow-sm space-y-3">
+                        {/* Header: Periode + Status */}
+                        <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+                          <span className="font-bold text-slate-800 text-sm">{formatPeriode(record.periode)}</span>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold capitalize
+                            ${record.status === 'paid' ? 'badge-paid' : 
+                              record.status === 'published' ? 'badge-published' : 
+                              'badge-pending'}`}>
+                            {record.status === 'paid' ? 'Lunas' : record.status === 'published' ? 'Diterbitkan' : 'Draft'}
+                          </span>
+                        </div>
 
-                                {/* Kolom Potongan */}
-                                <div>
-                                  <h4 className="font-semibold mb-3 border-b pb-2">Rincian Potongan ({record.periode})</h4>
-                                  {record.payroll_deductions && record.payroll_deductions.length > 0 ? (
-                                    <ul className="space-y-2">
-                                      {record.payroll_deductions.map(deduction => (
-                                        <li key={deduction.id} className="flex justify-between text-sm">
-                                          <span className="text-muted-foreground">{deduction.deduction_types.nama}</span>
-                                          <span className="font-medium text-destructive">{formatRupiah(deduction.nominal)}</span>
-                                        </li>
-                                      ))}
-                                      <li className="flex justify-between text-sm font-bold border-t pt-2 mt-2">
-                                        <span>Total Potongan</span>
-                                        <span className="text-destructive">{formatRupiah(record.total_potongan)}</span>
+                        {/* Main Info: Gaji Bersih, Penerimaan, Potongan */}
+                        <div className="grid grid-cols-3 gap-2 py-1">
+                          <div>
+                            <p className="text-[10px] text-slate-400 font-medium">Penerimaan</p>
+                            <p className="text-xs font-semibold text-slate-700 mt-0.5">{formatRupiah(record.gaji_pokok)}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-slate-400 font-medium">Potongan</p>
+                            <p className="text-xs font-semibold text-red-600 mt-0.5">-{formatRupiah(record.total_potongan)}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-[10px] text-slate-400 font-medium">Gaji Bersih</p>
+                            <p className="text-sm font-extrabold text-emerald-600 mt-0.5">{formatRupiah(record.gaji_bersih)}</p>
+                          </div>
+                        </div>
+
+                        {/* Actions: Detail, Print Slip */}
+                        <div className="flex gap-2.5 pt-2 border-t border-slate-100">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => toggleRow(record.id)}
+                            className="flex-1 h-9 rounded-xl text-xs font-semibold"
+                          >
+                            {isExpanded ? 'Tutup Rincian' : 'Rincian Gaji'}
+                            {isExpanded ? (
+                              <ChevronUp className="ml-1 w-3.5 h-3.5" />
+                            ) : (
+                              <ChevronDown className="ml-1 w-3.5 h-3.5" />
+                            )}
+                          </Button>
+                          <Button 
+                            variant="default" 
+                            size="sm" 
+                            onClick={() => handlePrint(record)}
+                            disabled={record.status === 'draft'}
+                            className="flex-1 h-9 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700"
+                          >
+                            <Printer className="w-3.5 h-3.5 mr-1" />
+                            Cetak Slip
+                          </Button>
+                        </div>
+
+                        {/* Expanded details list */}
+                        {isExpanded && (
+                          <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200/60 mt-2 space-y-4 animate-in fade-in slide-in-from-top-1 duration-200">
+                            {/* Penerimaan */}
+                            <div>
+                              <h5 className="font-bold text-xs text-slate-800 border-b border-slate-200 pb-1 mb-2">Rincian Penerimaan</h5>
+                              <ul className="space-y-1.5">
+                                {record.penghasilan_details ? (
+                                  <>
+                                    {Object.entries(record.penghasilan_details).map(([key, value]) => (
+                                      <li key={key} className="flex justify-between text-xs">
+                                        <span className="text-slate-500">{key}</span>
+                                        <span className="font-semibold text-slate-700">{formatRupiah(value as number)}</span>
                                       </li>
-                                    </ul>
+                                    ))}
+                                    <li className="flex justify-between text-xs font-bold border-t border-slate-200/60 pt-1.5 mt-1.5">
+                                      <span className="text-slate-600">Total Penerimaan</span>
+                                      <span className="text-emerald-600">{formatRupiah(record.gaji_pokok)}</span>
+                                    </li>
+                                  </>
+                                ) : (
+                                  <li className="flex justify-between text-xs">
+                                    <span className="text-slate-500">Gaji Pokok & Tunjangan</span>
+                                    <span className="font-semibold text-emerald-600">{formatRupiah(record.gaji_pokok)}</span>
+                                  </li>
+                                )}
+                              </ul>
+                            </div>
+
+                            {/* Potongan */}
+                            <div>
+                              <h5 className="font-bold text-xs text-slate-800 border-b border-slate-200 pb-1 mb-2">Rincian Potongan</h5>
+                              {record.payroll_deductions && record.payroll_deductions.length > 0 ? (
+                                <ul className="space-y-1.5">
+                                  {record.payroll_deductions.map(deduction => (
+                                    <li key={deduction.id} className="flex justify-between text-xs">
+                                      <span className="text-slate-500">{deduction.deduction_types.nama}</span>
+                                      <span className="font-semibold text-red-600">-{formatRupiah(deduction.nominal)}</span>
+                                    </li>
+                                  ))}
+                                  <li className="flex justify-between text-xs font-bold border-t border-slate-200/60 pt-1.5 mt-1.5">
+                                    <span className="text-slate-600">Total Potongan</span>
+                                    <span className="text-red-600">-{formatRupiah(record.total_potongan)}</span>
+                                  </li>
+                                </ul>
+                              ) : (
+                                <p className="text-xs text-slate-400 italic">Tidak ada potongan pada bulan ini.</p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* Desktop Table View (hidden md:block) */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-muted/50 text-muted-foreground uppercase text-xs">
+                      <tr>
+                        <th className="px-4 py-3 font-medium rounded-tl-lg">Periode</th>
+                        <th className="px-4 py-3 font-medium text-right">Penerimaan</th>
+                        <th className="px-4 py-3 font-medium text-right">Potongan</th>
+                        <th className="px-4 py-3 font-medium text-right">Gaji Bersih</th>
+                        <th className="px-4 py-3 font-medium text-center">Status</th>
+                        <th className="px-4 py-3 font-medium text-center rounded-tr-lg">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y border-b">
+                      {records.map((record) => (
+                        <Fragment key={record.id}>
+                          <tr className="hover:bg-muted/20 transition-colors group">
+                            <td className="px-4 py-4 font-medium">{formatPeriode(record.periode)}</td>
+                            <td className="px-4 py-4 text-right">{formatRupiah(record.gaji_pokok)}</td>
+                            <td className="px-4 py-4 text-right text-destructive">{formatRupiah(record.total_potongan)}</td>
+                            <td className="px-4 py-4 text-right font-bold text-primary">{formatRupiah(record.gaji_bersih)}</td>
+                            <td className="px-4 py-4 text-center">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
+                                ${record.status === 'paid' ? 'badge-paid' : 
+                                  record.status === 'published' ? 'badge-published' : 
+                                  'badge-pending'}`}>
+                                {record.status}
+                              </span>
+                            </td>
+                            <td className="px-4 py-4 text-center">
+                              <div className="flex items-center justify-center space-x-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={() => toggleRow(record.id)}
+                                  className="h-8"
+                                >
+                                  Detail
+                                  {expandedRows.has(record.id) ? (
+                                    <ChevronUp className="ml-1 w-4 h-4" />
                                   ) : (
-                                    <p className="text-sm text-muted-foreground italic">Tidak ada potongan pada bulan ini.</p>
+                                    <ChevronDown className="ml-1 w-4 h-4" />
                                   )}
-                                </div>
+                                </Button>
+                                <Button 
+                                  variant="default" 
+                                  size="sm" 
+                                  onClick={() => handlePrint(record)}
+                                  disabled={record.status === 'draft'}
+                                  className="h-8 bg-emerald-600 hover:bg-emerald-700"
+                                >
+                                  <Printer className="w-4 h-4 mr-1" />
+                                  Slip
+                                </Button>
                               </div>
                             </td>
                           </tr>
-                        )}
-                      </Fragment>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                          
+                          {/* Expanded Details Row */}
+                          {expandedRows.has(record.id) && (
+                            <tr className="bg-muted/10 border-b-0">
+                              <td colSpan={6} className="px-4 py-4">
+                                <div className="max-w-4xl ml-auto mr-auto bg-background rounded-lg border p-4 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-6">
+                                  {/* Kolom Penerimaan */}
+                                  <div>
+                                    <h4 className="font-semibold mb-3 border-b pb-2">Rincian Penerimaan ({formatPeriode(record.periode)})</h4>
+                                    <ul className="space-y-2">
+                                      {record.penghasilan_details ? (
+                                        <>
+                                          {Object.entries(record.penghasilan_details).map(([key, value]) => (
+                                            <li key={key} className="flex justify-between text-sm">
+                                              <span className="text-muted-foreground">{key}</span>
+                                              <span className="font-medium text-emerald-600">{formatRupiah(value as number)}</span>
+                                            </li>
+                                          ))}
+                                          <li className="flex justify-between text-sm font-bold border-t pt-2 mt-2">
+                                            <span>Total Penerimaan</span>
+                                            <span className="text-emerald-600">{formatRupiah(record.gaji_pokok)}</span>
+                                          </li>
+                                        </>
+                                      ) : (
+                                        <li className="flex justify-between text-sm">
+                                          <span className="text-muted-foreground">Gaji Pokok & Tunjangan</span>
+                                          <span className="font-medium text-emerald-600">{formatRupiah(record.gaji_pokok)}</span>
+                                        </li>
+                                      )}
+                                    </ul>
+                                  </div>
+
+                                  {/* Kolom Potongan */}
+                                  <div>
+                                    <h4 className="font-semibold mb-3 border-b pb-2">Rincian Potongan ({formatPeriode(record.periode)})</h4>
+                                    {record.payroll_deductions && record.payroll_deductions.length > 0 ? (
+                                      <ul className="space-y-2">
+                                        {record.payroll_deductions.map(deduction => (
+                                          <li key={deduction.id} className="flex justify-between text-sm">
+                                            <span className="text-muted-foreground">{deduction.deduction_types.nama}</span>
+                                            <span className="font-medium text-destructive">{formatRupiah(deduction.nominal)}</span>
+                                          </li>
+                                        ))}
+                                        <li className="flex justify-between text-sm font-bold border-t pt-2 mt-2">
+                                          <span>Total Potongan</span>
+                                          <span className="text-destructive">{formatRupiah(record.total_potongan)}</span>
+                                        </li>
+                                      </ul>
+                                    ) : (
+                                      <p className="text-sm text-muted-foreground italic">Tidak ada potongan pada bulan ini.</p>
+                                    )}
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </Fragment>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>

@@ -176,8 +176,8 @@ export default function BendaharaDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard Bendahara</h1>
-        <p className="text-muted-foreground mt-2">
+        <h1 className="text-xl md:text-3xl font-bold tracking-tight">Dashboard Bendahara</h1>
+        <p className="text-xs md:text-sm text-muted-foreground mt-1">
           Verifikasi pembayaran tagihan dari Wali Murid.
         </p>
       </div>

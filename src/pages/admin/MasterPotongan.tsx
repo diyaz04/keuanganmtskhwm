@@ -239,47 +239,47 @@ export default function MasterPotongan() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Master Potongan</h1>
-        <p className="text-muted-foreground mt-2">
+        <h1 className="text-xl md:text-3xl font-bold tracking-tight">Master Potongan</h1>
+        <p className="text-xs md:text-sm text-muted-foreground mt-1">
           Kelola referensi potongan (Koperasi, Asuransi, dll) dan terapkan ke pegawai.
         </p>
       </div>
 
       <Tabs defaultValue="jenis" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 max-w-[600px]">
-          <TabsTrigger value="jenis">Jenis Potongan</TabsTrigger>
-          <TabsTrigger value="massal">Assign Sekaligus</TabsTrigger>
-          <TabsTrigger value="assignment">Simulasi Pegawai</TabsTrigger>
+        <TabsList className="flex overflow-x-auto w-full md:grid md:grid-cols-3 max-w-[600px] gap-1 p-1 bg-slate-100 rounded-xl no-scrollbar justify-start md:justify-center">
+          <TabsTrigger value="jenis" className="flex-1 md:flex-none py-2 text-xs md:text-sm rounded-lg whitespace-nowrap px-3">Jenis Potongan</TabsTrigger>
+          <TabsTrigger value="massal" className="flex-1 md:flex-none py-2 text-xs md:text-sm rounded-lg whitespace-nowrap px-3">Assign Sekaligus</TabsTrigger>
+          <TabsTrigger value="assignment" className="flex-1 md:flex-none py-2 text-xs md:text-sm rounded-lg whitespace-nowrap px-3">Simulasi Pegawai</TabsTrigger>
         </TabsList>
         
         {/* TAB 1: Jenis Potongan */}
         <TabsContent value="jenis" className="space-y-4 mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Tambah Jenis Potongan</CardTitle>
-              <CardDescription>Buat tipe potongan baru yang nanti bisa diterapkan ke pegawai.</CardDescription>
+          <Card className="max-w-3xl shadow-sm border border-slate-100">
+            <CardHeader className="p-4 md:p-6 pb-2 md:pb-2">
+              <CardTitle className="text-base md:text-lg">Tambah Jenis Potongan</CardTitle>
+              <CardDescription className="text-xs md:text-sm">Buat tipe potongan baru yang nanti bisa diterapkan ke pegawai.</CardDescription>
             </CardHeader>
-            <CardContent>
-              <form onSubmit={handleAddType} className="flex flex-col md:flex-row gap-4 items-end">
-                <div className="space-y-2 flex-1">
-                  <Label>Nama Potongan</Label>
-                  <Input placeholder="Misal: Koperasi Berkah" value={newTypeName} onChange={e => setNewTypeName(e.target.value)} required />
+            <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
+              <form onSubmit={handleAddType} className="flex flex-col md:flex-row gap-3 md:gap-4 items-end">
+                <div className="space-y-1.5 flex-1 w-full">
+                  <Label className="text-xs font-semibold text-slate-500">Nama Potongan</Label>
+                  <Input placeholder="Misal: Koperasi Berkah" value={newTypeName} onChange={e => setNewTypeName(e.target.value)} required className="h-9 text-xs md:text-sm rounded-lg" />
                 </div>
-                <div className="space-y-2 w-full md:w-[150px]">
-                  <Label>Tipe</Label>
+                <div className="space-y-1.5 w-full md:w-[150px]">
+                  <Label className="text-xs font-semibold text-slate-500">Tipe</Label>
                   <Select value={newTypeCategory} onValueChange={(val) => setNewTypeCategory(val || '')}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-9 text-xs md:text-sm rounded-lg"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="flat">Flat (Rp)</SelectItem>
                       <SelectItem value="persen">Persen (%)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2 flex-1">
-                  <Label>Nominal Default / Besaran %</Label>
-                  <Input type="number" placeholder="Contoh: 50000 atau 5" value={newTypeNominal} onChange={e => setNewTypeNominal(e.target.value)} required />
+                <div className="space-y-1.5 flex-1 w-full">
+                  <Label className="text-xs font-semibold text-slate-500">Nominal Default / Besaran %</Label>
+                  <Input type="number" placeholder="Contoh: 50000 atau 5" value={newTypeNominal} onChange={e => setNewTypeNominal(e.target.value)} required className="h-9 text-xs md:text-sm rounded-lg" />
                 </div>
-                <Button type="submit" className="w-full md:w-auto"><PlusCircle className="w-4 h-4 mr-2" /> Tambah</Button>
+                <Button type="submit" className="w-full md:w-auto h-9 text-xs md:text-sm rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white"><PlusCircle className="w-4 h-4 mr-2" /> Tambah</Button>
               </form>
             </CardContent>
           </Card>

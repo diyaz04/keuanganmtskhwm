@@ -640,13 +640,13 @@ export default function MasterData() {
     <>
       <div className="space-y-6 print:hidden">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Data Master</h1>
-          <p className="text-muted-foreground mt-2">
-            Upload dan kelola data master Pegawai (Guru/Karyawan) dan Siswa.
-          </p>
+          <div>
+            <h1 className="text-xl md:text-3xl font-bold tracking-tight">Data Master</h1>
+            <p className="text-xs md:text-sm text-muted-foreground mt-1">
+              Upload dan kelola data master Pegawai (Guru/Karyawan) dan Siswa.
+            </p>
+          </div>
         </div>
-      </div>
 
       {message && (
         <div className={`p-4 rounded-md border ${message.type === 'success' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
@@ -672,44 +672,51 @@ export default function MasterData() {
               <p className="text-sm text-amber-700 mt-0.5">
                 Kode akses untuk <span className="font-semibold">{revealedPIN.employeeName}</span>
               </p>
-              <div className="mt-3 flex items-center gap-3">
-                <div className="bg-white border-2 border-amber-200 rounded-lg px-5 py-2.5 font-mono text-2xl font-bold tracking-[0.3em] text-slate-800 select-all">
-                  {showPIN ? revealedPIN.pin : '••••••'}
+              <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-3">
+                {/* Kiri: PIN Box + Eye Toggle */}
+                <div className="flex items-center gap-2">
+                  <div className="bg-white border-2 border-amber-200 rounded-lg px-4 py-2 font-mono text-xl md:text-2xl font-bold tracking-[0.3em] text-slate-800 select-all min-w-[140px] text-center">
+                    {showPIN ? revealedPIN.pin : '••••••'}
+                  </div>
+                  <button
+                    onClick={() => setShowPIN(!showPIN)}
+                    className="p-2 rounded-lg hover:bg-amber-100 transition-colors text-amber-700 border border-amber-200 bg-white"
+                    title={showPIN ? 'Sembunyikan' : 'Tampilkan'}
+                  >
+                    {showPIN ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
                 </div>
-                <button
-                  onClick={() => setShowPIN(!showPIN)}
-                  className="p-2 rounded-lg hover:bg-amber-100 transition-colors text-amber-700"
-                  title={showPIN ? 'Sembunyikan' : 'Tampilkan'}
-                >
-                  {showPIN ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCopyPIN}
-                  className={`gap-1.5 transition-all ${copied ? 'bg-green-50 border-green-300 text-green-700' : 'border-amber-300 text-amber-800 hover:bg-amber-100'}`}
-                >
-                  {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                  {copied ? 'Tersalin!' : 'Salin'}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const emp = existingEmployees.find(e => e.id === revealedPIN.employeeId)
-                    setPrintQueue([{
-                      employeeId: revealedPIN.employeeId,
-                      employeeName: revealedPIN.employeeName,
-                      nip: emp?.nip || '-',
-                      pin: revealedPIN.pin
-                    }])
-                    setTimeout(() => window.print(), 500)
-                  }}
-                  className="gap-1.5 transition-all border-amber-300 text-amber-800 hover:bg-amber-100"
-                >
-                  <Printer className="w-4 h-4" />
-                  Cetak PIN
-                </Button>
+                
+                {/* Kanan: Salin & Cetak Buttons */}
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopyPIN}
+                    className={`gap-1.5 transition-all flex-1 sm:flex-initial ${copied ? 'bg-green-50 border-green-300 text-green-700' : 'border-amber-300 text-amber-800 hover:bg-amber-100 bg-white'}`}
+                  >
+                    {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    {copied ? 'Tersalin!' : 'Salin'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const emp = existingEmployees.find(e => e.id === revealedPIN.employeeId)
+                      setPrintQueue([{
+                        employeeId: revealedPIN.employeeId,
+                        employeeName: revealedPIN.employeeName,
+                        nip: emp?.nip || '-',
+                        pin: revealedPIN.pin
+                      }])
+                      setTimeout(() => window.print(), 500)
+                    }}
+                    className="gap-1.5 transition-all border-amber-300 text-amber-800 hover:bg-amber-100 bg-white flex-1 sm:flex-initial"
+                  >
+                    <Printer className="w-4 h-4" />
+                    Cetak PIN
+                  </Button>
+                </div>
               </div>
               <div className="mt-3 flex items-start gap-1.5 text-xs text-amber-600 bg-amber-100/60 rounded-md px-3 py-2">
                 <ShieldCheck className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
@@ -738,7 +745,7 @@ export default function MasterData() {
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle>Data Pegawai</CardTitle>
-                  <CardDescription className="mt-1">
+                  <CardDescription className="mt-1 hidden md:block">
                     Upload file Excel (.xlsx) berisi: Nama, ID Pegawai, Gaji Pokok, Tunjangan, Tunjangan Koordinator, Tunjangan Walikelas, Tunjangan Lomba, Status.
                   </CardDescription>
                 </div>
@@ -1007,7 +1014,7 @@ export default function MasterData() {
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Data Siswa</CardTitle>
-                <CardDescription className="mt-1">
+                <CardDescription className="mt-1 hidden md:block">
                   Upload file Excel (.xlsx) berisi: NISN, Nama, Kelas, Nama Wali.
                 </CardDescription>
               </div>

@@ -343,8 +343,8 @@ export default function Penggajian() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Generate Penggajian</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className="text-xl md:text-3xl font-bold tracking-tight">Generate Penggajian</h1>
+          <p className="text-xs md:text-sm text-muted-foreground mt-1">
             Ikuti tahapan di bawah ini untuk memproses gaji dan potongan bulanan.
           </p>
         </div>
@@ -357,7 +357,7 @@ export default function Penggajian() {
       {/* Stepper UI */}
       <div className="relative border-b pb-8">
         <div className="absolute top-5 left-8 right-8 h-0.5 bg-slate-200 hidden md:block z-0"></div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative z-10">
+        <div className="grid grid-cols-4 gap-1 relative z-10">
           {steps.map((step) => {
             const Icon = step.icon
             const isActive = activeStep === step.id
@@ -369,18 +369,18 @@ export default function Penggajian() {
                 className="flex flex-col items-center cursor-pointer group"
                 onClick={() => setActiveStep(step.id)}
               >
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-colors duration-200
+                <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center border-2 transition-colors duration-200
                   ${isActive ? 'bg-primary border-primary text-white ring-4 ring-primary/20' : 
                     isCompleted ? 'bg-emerald-50 border-emerald-500 text-emerald-600' : 
                     'bg-white border-slate-200 text-slate-400 group-hover:border-primary/50'}
                 `}>
-                  {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : <Icon className="w-5 h-5" />}
+                  {isCompleted ? <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5" /> : <Icon className="w-4 h-4 md:w-5 md:h-5" />}
                 </div>
-                <div className={`mt-3 text-sm font-semibold text-center
+                <div className={`mt-2 text-[10px] md:text-sm font-bold text-center leading-tight
                   ${isActive ? 'text-primary' : isCompleted ? 'text-slate-700' : 'text-slate-400'}
                 `}>
                   Step {step.id}
-                  <div className="text-xs font-medium opacity-80">{step.title}</div>
+                  <div className="text-[9px] md:text-xs font-medium opacity-80 mt-0.5">{step.title}</div>
                 </div>
               </div>
             )

@@ -20,36 +20,50 @@ export default function VerifyDocument() {
 
       try {
         if (type === 'slip') {
-          // Fetch payroll_records
-          const { data: record, error: recError } = await supabase
-            .from('payroll_records')
-            .select(`
-              *,
-              employees ( nama, nip, posisi, pangkat_golongan )
-            `)
-            .eq('id', id)
-            .single()
+          // Fetch payroll_records using secure RPC (to bypass RLS for public guests)
+          const { data: records, error: recError } = await supabase
+            .rpc('verify_payroll_record', { record_id: id })
 
-          if (recError || !record) {
+          if (recError || !records || records.length === 0) {
             setError('Slip gaji tidak ditemukan atau tidak valid')
           } else {
-            setData({ ...record, docType: 'slip' })
+            const record = records[0]
+            setData({
+              id: record.id,
+              periode: record.periode,
+              gaji_pokok: record.gaji_pokok,
+              total_potongan: record.total_potongan,
+              gaji_bersih: record.gaji_bersih,
+              employees: {
+                nama: record.employee_nama,
+                nip: record.employee_nip
+              },
+              docType: 'slip'
+            })
           }
         } else if (type === 'kwitansi') {
-          // Fetch student_payments
-          const { data: payment, error: payError } = await supabase
-            .from('student_payments')
-            .select(`
-              *,
-              students ( nama, nisn, kelas )
-            `)
-            .eq('id', id)
-            .single()
+          // Fetch payments using secure RPC (to bypass RLS for public guests)
+          const { data: payments, error: payError } = await supabase
+            .rpc('verify_payment_record', { search_id: id })
 
-          if (payError || !payment) {
+          if (payError || !payments || payments.length === 0) {
             setError('Kwitansi pembayaran tidak ditemukan atau tidak valid')
           } else {
-            setData({ ...payment, docType: 'kwitansi' })
+            const record = payments[0]
+            setData({
+              id: record.id,
+              nomor_kwitansi: record.nomor_kwitansi,
+              tanggal_bayar: record.tanggal_bayar,
+              students: {
+                nama: record.student_nama,
+                nisn: record.student_nisn,
+                kelas: record.student_kelas
+              },
+              payment_type: record.jenis_tagihan,
+              keterangan: record.catatan,
+              jumlah: record.nominal_dibayar,
+              docType: 'kwitansi'
+            })
           }
         } else {
           setError('Tipe dokumen tidak didukung')

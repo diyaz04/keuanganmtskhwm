@@ -478,8 +478,8 @@ export default function TagihanConfig() {
     <div className="space-y-6 max-w-6xl mx-auto">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-800">Konfigurasi Tagihan</h1>
-        <p className="text-slate-500 mt-2 text-sm">
+        <h1 className="text-xl md:text-3xl font-bold tracking-tight text-slate-800">Konfigurasi Tagihan</h1>
+        <p className="text-xs md:text-sm text-slate-500 mt-1">
           Kelola template tagihan, pengecualian siswa berprestasi, dan keringanan siswa kurang mampu.
         </p>
       </div>

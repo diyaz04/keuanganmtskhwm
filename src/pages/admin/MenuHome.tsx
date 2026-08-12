@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/utils'
 import { 
   Users, 
   ReceiptText, 
@@ -15,7 +16,8 @@ import {
   ChevronDown,
   Search, 
   Bell,
-  LogOut
+  LogOut,
+  User
 } from 'lucide-react'
 
 interface MenuItem {
@@ -174,6 +176,7 @@ export default function MenuHome() {
           titleColor: 'text-slate-800',
           subColor: 'text-slate-500',
           emoji: '🌅',
+          subTitle: 'Semoga pagi ini membawa berkah.',
           badgeBg: 'bg-amber-100/60 border-amber-200 text-amber-900',
           badgeIconBg: 'bg-amber-500 text-white',
           decor: (
@@ -189,6 +192,7 @@ export default function MenuHome() {
           titleColor: 'text-slate-800',
           subColor: 'text-slate-500',
           emoji: '☀️',
+          subTitle: 'Jangan lupa istirahat sejenak.',
           badgeBg: 'bg-sky-100/60 border-sky-200 text-sky-900',
           badgeIconBg: 'bg-sky-500 text-white',
           decor: (
@@ -207,6 +211,7 @@ export default function MenuHome() {
           titleColor: 'text-slate-800',
           subColor: 'text-slate-500',
           emoji: '🌇',
+          subTitle: 'Tetap semangat beraktivitas.',
           badgeBg: 'bg-orange-100/60 border-orange-200 text-orange-950',
           badgeIconBg: 'bg-orange-500 text-white',
           decor: (
@@ -223,6 +228,7 @@ export default function MenuHome() {
           titleColor: 'text-white',
           subColor: 'text-slate-300',
           emoji: '🌙',
+          subTitle: 'Selamat beristirahat dari aktivitas hari ini.',
           badgeBg: 'bg-white/10 border-white/20 text-slate-100',
           badgeIconBg: 'bg-indigo-600 text-white',
           decor: (
@@ -340,7 +346,7 @@ export default function MenuHome() {
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       {/* Top Bar inside page */}
-      <div className="flex justify-between items-center pb-4 border-b border-slate-100 no-print">
+      <div className="hidden md:flex justify-between items-center pb-4 border-b border-slate-100 no-print">
         {/* Date Badge */}
         <div className="bg-slate-100/80 text-slate-600 font-semibold px-4 py-2 rounded-xl text-xs flex items-center gap-2">
           📅 {getCurrentDateString()}
@@ -516,7 +522,7 @@ export default function MenuHome() {
       </div>
 
       {/* Hero Greeting Section */}
-      <div className={`relative overflow-hidden border rounded-[32px] min-h-[180px] sm:min-h-[220px] flex flex-row justify-between shadow-sm no-print mt-6 transition-all duration-500 bg-gradient-to-r ${theme.bannerBg}`}>
+      <div className={`relative overflow-hidden border rounded-[32px] min-h-[180px] sm:min-h-[220px] flex flex-row justify-between shadow-sm no-print !-mt-1 md:!mt-6 transition-all duration-500 bg-gradient-to-r ${theme.bannerBg}`}>
         {/* Dynamic theme decoration background element */}
         {theme.decor}
 
@@ -531,25 +537,25 @@ export default function MenuHome() {
               <span className="text-emerald-500">.</span>
             </h2>
             <p className={`text-[10px] sm:text-xs md:text-sm max-w-md ${theme.subColor} leading-normal sm:leading-relaxed`}>
-              Semoga hari ini penuh berkah dan kemudahan dalam mengelola keuangan MTs KHWM.
+              {theme.subTitle}
             </p>
           </div>
           
           <div className="flex">
-            <div className={`inline-flex items-center gap-2 sm:gap-3 border rounded-xl sm:rounded-2xl px-2.5 py-1 sm:px-4 sm:py-2 transition-colors ${theme.badgeBg}`}>
-              <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center font-bold ${theme.badgeIconBg}`}>
-                <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <div className="inline-flex items-center gap-2.5 bg-white border border-slate-200/60 rounded-2xl px-3 py-1.5 shadow-sm transition-all">
+              <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center flex-shrink-0">
+                <User className="w-4 h-4" />
               </div>
-              <div>
-                <p className="text-[8px] sm:text-[9px] font-bold opacity-60 uppercase tracking-wider leading-none">Akses Akun</p>
-                <p className="text-[10px] sm:text-xs font-bold capitalize mt-0.5 sm:mt-1">{role}</p>
+              <div className="text-left">
+                <p className="text-[8px] font-extrabold text-slate-400 uppercase tracking-wider leading-none">Akses Akun</p>
+                <p className="text-xs font-bold text-slate-800 capitalize mt-0.5">{role}</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Right side background image that blends seamlessly with the card */}
-        <div className="absolute right-0 top-0 bottom-0 w-[42%] sm:w-[45%] md:w-[48%] lg:w-[480px] h-full overflow-hidden pointer-events-none rounded-r-[30px] z-0">
+        <div className="absolute right-0 top-0 bottom-0 w-[50%] xs:w-[45%] sm:w-[45%] md:w-[48%] lg:w-[480px] h-full overflow-hidden pointer-events-none rounded-r-[30px] z-0">
           {/* Smooth gradient fade to theme color on the left side of the image */}
           <div className={`absolute inset-0 bg-gradient-to-r ${theme.fadeColor} z-10 pointer-events-none`} />
           
@@ -573,14 +579,20 @@ export default function MenuHome() {
       </div>
 
       {/* Menu Categories - Compact Tile List */}
-      <div className="flex flex-col gap-2.5 mt-4">
+      <div className="grid grid-cols-2 md:flex md:flex-col gap-2.5 mt-4">
         {filteredCategories.map((cat, i) => {
           const Icon = cat.icon
           const isExpanded = expandedCategory === i
           const isSingleItem = cat.items.length === 1
 
           return (
-            <div key={i} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden transition-all duration-300">
+            <div 
+              key={i} 
+              className={cn(
+                "bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden transition-all duration-300",
+                isExpanded ? "col-span-2" : "col-span-1"
+              )}
+            >
               {/* Tile Header — always visible */}
               <button
                 type="button"
@@ -591,17 +603,17 @@ export default function MenuHome() {
                     setExpandedCategory(isExpanded ? null : i)
                   }
                 }}
-                className="w-full flex items-center gap-4 px-4 py-3.5 hover:bg-slate-50 transition-colors text-left"
+                className="w-full flex items-center gap-2 md:gap-4 px-3 md:px-4 py-3 md:py-3.5 hover:bg-slate-50 transition-colors text-left"
               >
                 {/* Icon */}
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 flex-shrink-0">
-                  <Icon className="w-5 h-5" />
+                <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 flex-shrink-0">
+                  <Icon className="w-4.5 h-4.5 md:w-5 md:h-5" />
                 </div>
 
                 {/* Text */}
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-sm text-slate-800 leading-tight">{cat.category}</p>
-                  <p className="text-[11px] text-slate-400 mt-0.5">
+                  <p className="font-bold text-xs md:text-sm text-slate-800 leading-tight">{cat.category}</p>
+                  <p className="text-[10px] md:text-[11px] text-slate-400 mt-0.5">
                     {cat.items.length} fitur
                   </p>
                 </div>

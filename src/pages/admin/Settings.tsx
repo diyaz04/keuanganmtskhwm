@@ -221,8 +221,8 @@ export default function Settings() {
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-800">Pengaturan Akun</h1>
-        <p className="text-muted-foreground mt-2">
+        <h1 className="text-xl md:text-3xl font-bold tracking-tight text-slate-800">Pengaturan Akun</h1>
+        <p className="text-xs md:text-sm text-muted-foreground mt-1">
           Kelola foto profil, nama tampilan, dan ubah kata sandi akun Anda.
         </p>
       </div>

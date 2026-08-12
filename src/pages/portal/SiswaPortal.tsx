@@ -260,7 +260,7 @@ export default function SiswaPortal({ user }: SiswaPortalProps) {
   const handlePrintKwitansi = (bill: Bill, payment: any) => {
     if (!payment) return
     setPrintData({
-      id: bill.id,
+      id: payment.id,
       nama: bill.students?.nama || user.nama,
       nisn: bill.students?.nisn || '-',
       jenis_tagihan: bill.jenis_tagihan,

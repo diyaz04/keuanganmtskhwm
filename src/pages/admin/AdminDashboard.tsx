@@ -158,8 +158,8 @@ export default function AdminDashboard() {
       {/* Tombol cetak akan di-hide saat print */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 no-print">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Command Center</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className="text-xl md:text-3xl font-bold tracking-tight">Command Center</h1>
+          <p className="text-xs md:text-sm text-muted-foreground mt-1">
             Ringkasan eksekutif arus kas dan performa keuangan sekolah.
           </p>
         </div>
@@ -252,65 +252,65 @@ export default function AdminDashboard() {
       ) : (
         <>
           {activeTab === 'all' ? (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
               <Card className="bg-primary/5 border-primary/20">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-primary">Beban Gaji Terbayar</CardTitle>
-                  <Wallet className="h-4 w-4 text-primary" />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-6">
+                  <CardTitle className="text-[10px] sm:text-sm font-medium text-primary">Beban Gaji Terbayar</CardTitle>
+                  <Wallet className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-primary">{formatRupiah(totalGaji)}</div>
-                  <p className="text-xs text-muted-foreground mt-1">Akumulasi seluruh periode</p>
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+                  <div className="text-sm sm:text-2xl font-bold text-primary">{formatRupiah(totalGaji)}</div>
+                  <p className="text-[8px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">Akumulasi seluruh periode</p>
                 </CardContent>
               </Card>
 
               <Card className="bg-green-50 border-green-200">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-green-700">Tagihan Masuk (Lunas)</CardTitle>
-                  <Banknote className="h-4 w-4 text-green-600" />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-6">
+                  <CardTitle className="text-[10px] sm:text-sm font-medium text-green-700">Tagihan Masuk (Lunas)</CardTitle>
+                  <Banknote className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600" />
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-green-700">{formatRupiah(tagihanMasuk)}</div>
-                  <p className="text-xs text-green-600/80 mt-1">
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+                  <div className="text-sm sm:text-2xl font-bold text-green-700">{formatRupiah(tagihanMasuk)}</div>
+                  <p className="text-[8px] sm:text-xs text-green-600/80 mt-0.5 sm:mt-1 truncate">
                     {activeBillTypeTab === 'all' ? 'Pendapatan SPP & Uang Pangkal' : `Pendapatan khusus ${activeBillTypeTab}`}
                   </p>
                 </CardContent>
               </Card>
 
               <Card className="bg-amber-50 border-amber-200">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-amber-700">Piutang / Outstanding</CardTitle>
-                  <CreditCard className="h-4 w-4 text-amber-600" />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-6">
+                  <CardTitle className="text-[10px] sm:text-sm font-medium text-amber-700">Piutang / Outstanding</CardTitle>
+                  <CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-600" />
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-amber-700">{formatRupiah(tagihanOutstanding)}</div>
-                  <p className="text-xs text-amber-600/80 mt-1">
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+                  <div className="text-sm sm:text-2xl font-bold text-amber-700">{formatRupiah(tagihanOutstanding)}</div>
+                  <p className="text-[8px] sm:text-xs text-amber-600/80 mt-0.5 sm:mt-1 truncate">
                     {activeBillTypeTab === 'all' ? 'Tagihan siswa yang belum dibayar' : `Tagihan ${activeBillTypeTab} belum dibayar`}
                   </p>
                 </CardContent>
               </Card>
 
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Populasi Aktif</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-6">
+                  <CardTitle className="text-[10px] sm:text-sm font-medium">Populasi Aktif</CardTitle>
+                  <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{totalSiswa} Siswa</div>
-                  <p className="text-xs text-muted-foreground mt-1">{rawEmpCount} Guru & Staf Aktif</p>
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+                  <div className="text-sm sm:text-2xl font-bold">{totalSiswa} Siswa</div>
+                  <p className="text-[8px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 truncate">{rawEmpCount} Guru & Staf Aktif</p>
                 </CardContent>
               </Card>
             </div>
           ) : (
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-3">
               <Card className="bg-green-50 border-green-200">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-green-700">Tagihan Masuk (Lunas)</CardTitle>
-                  <Banknote className="h-4 w-4 text-green-600" />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-6">
+                  <CardTitle className="text-[10px] sm:text-sm font-medium text-green-700">Tagihan Masuk (Lunas)</CardTitle>
+                  <Banknote className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600" />
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-green-700">{formatRupiah(tagihanMasuk)}</div>
-                  <p className="text-xs text-green-600/80 mt-1">
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+                  <div className="text-sm sm:text-2xl font-bold text-green-700">{formatRupiah(tagihanMasuk)}</div>
+                  <p className="text-[8px] sm:text-xs text-green-600/80 mt-0.5 sm:mt-1 truncate">
                     {activeBillTypeTab === 'all' 
                       ? `Pendapatan khusus angkatan ${activeTab}`
                       : `Pendapatan ${activeBillTypeTab}`
@@ -320,13 +320,13 @@ export default function AdminDashboard() {
               </Card>
 
               <Card className="bg-amber-50 border-amber-200">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-amber-700">Piutang / Outstanding</CardTitle>
-                  <CreditCard className="h-4 w-4 text-amber-600" />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-6">
+                  <CardTitle className="text-[10px] sm:text-sm font-medium text-amber-700">Piutang / Outstanding</CardTitle>
+                  <CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-600" />
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-amber-700">{formatRupiah(tagihanOutstanding)}</div>
-                  <p className="text-xs text-amber-600/80 mt-1">
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+                  <div className="text-sm sm:text-2xl font-bold text-amber-700">{formatRupiah(tagihanOutstanding)}</div>
+                  <p className="text-[8px] sm:text-xs text-amber-600/80 mt-0.5 sm:mt-1 truncate">
                     {activeBillTypeTab === 'all' 
                       ? `Tagihan belum bayar angkatan ${activeTab}`
                       : `Tagihan ${activeBillTypeTab} belum lunas`
@@ -335,14 +335,14 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Populasi Angkatan {activeTab}</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
+              <Card className="col-span-2 md:col-span-1">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-6">
+                  <CardTitle className="text-[10px] sm:text-sm font-medium">Populasi Angkatan {activeTab}</CardTitle>
+                  <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{totalSiswa} Siswa</div>
-                  <p className="text-xs text-muted-foreground mt-1">Jumlah terdaftar angkatan {activeTab}</p>
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+                  <div className="text-sm sm:text-2xl font-bold">{totalSiswa} Siswa</div>
+                  <p className="text-[8px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 truncate">Jumlah terdaftar angkatan {activeTab}</p>
                 </CardContent>
               </Card>
             </div>
