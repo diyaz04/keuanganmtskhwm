@@ -15,20 +15,44 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: |
-          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
-            echo "Error: Silakan tambahkan secret SUPABASE_URL dan SUPABASE_ANON_KEY di repositori GitHub Anda terlebih dahulu."
+          # Ambil URL dan KEY dari secret (baik dengan atau tanpa prefix VITE_)
+          URL="${SUPABASE_URL:-$VITE_SUPABASE_URL}"
+          KEY="${SUPABASE_ANON_KEY:-$VITE_SUPABASE_ANON_KEY}"
+          
+          # Hapus trailing slash di akhir URL jika ada (menghindari double slash //rest/v1)
+          URL="${URL%/}"
+          
+          if [ -z "$URL" ] || [ -z "$KEY" ]; then
+            echo "Error: Secret URL atau ANON_KEY tidak ditemukan di GitHub Secrets."
+            echo "Silakan pastikan Anda telah mengisi salah satu pasangan berikut di GitHub Repository Settings:"
+            echo "  - SUPABASE_URL dan SUPABASE_ANON_KEY"
+            echo "  - VITE_SUPABASE_URL dan VITE_SUPABASE_ANON_KEY"
             exit 1
           fi
           
-          echo "Pinging root schema API Supabase..."
-          curl -s -f -X GET "${SUPABASE_URL}/rest/v1/" \
-            -H "apikey: ${SUPABASE_ANON_KEY}" \
-            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" > /dev/null
+          echo "Menghubungi Supabase di URL: $URL"
           
-          echo "Melakukan query ringan ke tabel admin_profiles..."
-          curl -s -f -X GET "${SUPABASE_URL}/rest/v1/admin_profiles?select=id&limit=1" \
-            -H "apikey: ${SUPABASE_ANON_KEY}" \
-            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" > /dev/null
-
-          echo "Supabase berhasil diping! Aktivitas database tercatat untuk menghindari auto-pause."
+          # Ping 1: Schema API
+          echo "Mengirim ping ke REST API schema..."
+          STATUS_SCHEMA=$(curl -s -w "%{http_code}" -o /dev/null -X GET "${URL}/rest/v1/" \
+            -H "apikey: ${KEY}" \
+            -H "Authorization: Bearer ${KEY}")
+          echo "Hasil HTTP Status (Schema): $STATUS_SCHEMA"
+          
+          # Ping 2: Query ringan tabel admin_profiles
+          echo "Mengirim query ringan ke tabel admin_profiles..."
+          STATUS_QUERY=$(curl -s -w "%{http_code}" -o /dev/null -X GET "${URL}/rest/v1/admin_profiles?select=id&limit=1" \
+            -H "apikey: ${KEY}" \
+            -H "Authorization: Bearer ${KEY}")
+          echo "Hasil HTTP Status (Query): $STATUS_QUERY"
+          
+          # Validasi apakah salah satu request sukses (2xx)
+          if ([ "$STATUS_SCHEMA" -ge 200 ] && [ "$STATUS_SCHEMA" -lt 300 ]) || ([ "$STATUS_QUERY" -ge 200 ] && [ "$STATUS_QUERY" -lt 300 ]); then
+            echo "Sukses: Supabase merespons dengan baik. Database dipastikan tetap aktif!"
+          else
+            echo "Gagal: Supabase mengembalikan kode status error (4xx/5xx). Silakan periksa kembali kecocokan URL dan ANON_KEY Anda."
+            exit 1
+          fi
