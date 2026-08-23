@@ -1,0 +1,34 @@
+name: Supabase Keep Alive
+
+on:
+  schedule:
+    # Berjalan setiap 3 hari sekali pada pukul 00:00 UTC
+    # Supabase free tier akan otomatis dipause setelah 7 hari tidak ada aktivitas database.
+    - cron: '0 0 */3 * *'
+  workflow_dispatch: # Memungkinkan eksekusi manual dari UI GitHub Actions
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase Database & REST API
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "Error: Silakan tambahkan secret SUPABASE_URL dan SUPABASE_ANON_KEY di repositori GitHub Anda terlebih dahulu."
+            exit 1
+          fi
+          
+          echo "Pinging root schema API Supabase..."
+          curl -s -f -X GET "${SUPABASE_URL}/rest/v1/" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" > /dev/null
+          
+          echo "Melakukan query ringan ke tabel admin_profiles..."
+          curl -s -f -X GET "${SUPABASE_URL}/rest/v1/admin_profiles?select=id&limit=1" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" > /dev/null
+
+          echo "Supabase berhasil diping! Aktivitas database tercatat untuk menghindari auto-pause."
