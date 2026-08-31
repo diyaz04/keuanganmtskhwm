@@ -81,7 +81,7 @@ export default function Penggajian() {
     const { data, error } = await supabase
       .from('payroll_records')
       .select(`
-        id, employee_id, periode, gaji_pokok, total_potongan, gaji_bersih, status,
+        id, employee_id, periode, gaji_pokok, total_potongan, gaji_bersih, status, penghasilan_details,
         employees ( nama, nip, no_rekening )
       `)
       .eq('periode', periode)
@@ -91,11 +91,15 @@ export default function Penggajian() {
       
       // Auto-determine step based on data
       const draftsCount = data.filter(r => r.status === 'draft').length
+      const generatedDraftsCount = data.filter(r => r.status === 'draft' && r.penghasilan_details !== null).length
       const publishedCount = data.filter(r => r.status === 'published' || r.status === 'paid').length
       
       if (data.length === 0) {
         setActiveStep(1)
-      } else if (draftsCount > 0) {
+      } else if (draftsCount > 0 && generatedDraftsCount === 0) {
+        // Drafts exist but they haven't been run through the 'Generate Draft' step (e.g. only imported from Koperasi)
+        setActiveStep(2)
+      } else if (draftsCount > 0 && generatedDraftsCount > 0) {
         setActiveStep(3)
       } else if (publishedCount > 0) {
         setActiveStep(4)
@@ -125,6 +129,20 @@ export default function Penggajian() {
           deduction_types ( id, tipe )
         `)
       if (errDed) throw errDed
+
+      // Fetch cooperative deduction type IDs once to preserve them on generate/sync
+      const { data: copTypes } = await supabase
+        .from('deduction_types')
+        .select('id')
+        .in('nama', [
+          'Simpanan Pokok',
+          'Simpanan Wajib',
+          'Simpanan Sukarela',
+          'Cicilan Pinjaman',
+          'Jasa Pinjaman',
+          'Sosial Via Cash'
+        ])
+      const copTypeIds = copTypes?.map(t => t.id) || []
 
       // 3. For each employee, generate or update payroll_records
       for (const emp of employees) {
@@ -174,38 +192,60 @@ export default function Penggajian() {
             .single()
           if (errNew) throw errNew
           recordId = newRec.id
+        } else {
+          // Update penghasilan jika record sudah ada (misalnya dibuat oleh koperasi import)
+          await supabase
+            .from('payroll_records')
+            .update({
+              gaji_pokok: grossSalary,
+              penghasilan_details: penghasilanDetails
+            })
+            .eq('id', recordId)
         }
 
-        const empDeds = (allDeductions as any[]).filter(d => d.employee_id === emp.id)
-        
-        const { data: currentPayrollDeds } = await supabase
+        // 1. Get current deductions for this payroll record from the database
+        const { data: currentDeds } = await supabase
           .from('payroll_deductions')
-          .select('deduction_type_id')
+          .select('id, deduction_type_id')
           .eq('payroll_record_id', recordId)
-        
-        const existingDedTypes = new Set(currentPayrollDeds?.map(d => d.deduction_type_id) || [])
 
+        // 2. Identify and delete only the non-cooperative master deductions, preserving cooperative deductions
+        const nonCopDeds = currentDeds?.filter(d => !copTypeIds.includes(d.deduction_type_id)) || []
+        const nonCopDedIds = nonCopDeds.map(d => d.id)
+
+        if (nonCopDedIds.length > 0) {
+          const { error: delError } = await supabase
+            .from('payroll_deductions')
+            .delete()
+            .in('id', nonCopDedIds)
+          if (delError) throw delError
+        }
+
+        // 3. Get latest master deductions for the employee
+        const empDeds = (allDeductions as any[]).filter(d => d.employee_id === emp.id)
+
+        // 4. Insert the latest master deductions
         const deductionsToInsert = []
         for (const ed of empDeds) {
-          if (!existingDedTypes.has(ed.deduction_type_id)) {
-            let nominalPotongan = ed.custom_nominal
-            if (ed.deduction_types.tipe === 'persen') {
-              nominalPotongan = emp.gaji_pokok * (ed.custom_nominal / 100)
-            }
-            if (nominalPotongan > 0) {
-              deductionsToInsert.push({
-                payroll_record_id: recordId,
-                deduction_type_id: ed.deduction_type_id,
-                nominal: nominalPotongan
-              })
-            }
+          let nominalPotongan = ed.custom_nominal
+          if (ed.deduction_types.tipe === 'persen') {
+            nominalPotongan = emp.gaji_pokok * (ed.custom_nominal / 100)
+          }
+          if (nominalPotongan > 0) {
+            deductionsToInsert.push({
+              payroll_record_id: recordId,
+              deduction_type_id: ed.deduction_type_id,
+              nominal: nominalPotongan
+            })
           }
         }
 
         if (deductionsToInsert.length > 0) {
-          await supabase.from('payroll_deductions').insert(deductionsToInsert)
+          const { error: insError } = await supabase.from('payroll_deductions').insert(deductionsToInsert)
+          if (insError) throw insError
         }
 
+        // 5. Query all final deductions (both master & cooperative) to calculate total
         const { data: finalDeds } = await supabase
           .from('payroll_deductions')
           .select('nominal')
@@ -217,8 +257,6 @@ export default function Penggajian() {
         await supabase
           .from('payroll_records')
           .update({
-            gaji_pokok: grossSalary,
-            penghasilan_details: penghasilanDetails,
             total_potongan: totalPotongan,
             gaji_bersih: gajiBersih
           })
