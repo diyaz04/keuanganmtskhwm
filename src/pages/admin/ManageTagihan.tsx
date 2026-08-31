@@ -92,6 +92,8 @@ export default function ManageTagihan() {
   const [searchName, setSearchName] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterAngkatan, setFilterAngkatan] = useState('all')
+  const [filterKelas, setFilterKelas] = useState('all')
+  const [sortBy, setSortBy] = useState<'newest' | 'name_asc' | 'name_desc'>('newest')
   const [activeCategoryTab, setActiveCategoryTab] = useState('Semua')
 
   const [selectedBills, setSelectedBills] = useState<Set<string>>(new Set())
@@ -710,20 +712,36 @@ export default function ManageTagihan() {
   const massalSelectedTemplate = templates.find(t => t.id === massalTemplateId)
   const tarikSelectedTemplate = templates.find(t => t.id === tarikTemplateId)
 
-  // Filtered Bills
-  const filteredBills = bills.filter(bill => {
-    const baseName = getBaseJenisTagihan(bill.jenis_tagihan)
-    const matchCategory = activeCategoryTab === 'Semua' || baseName === activeCategoryTab
-    const matchName = bill.students?.nama.toLowerCase().includes(searchName.toLowerCase())
-    const matchStatus = filterStatus === 'all' || bill.status === filterStatus
-    const matchAngkatan = filterAngkatan === 'all' || bill.students?.angkatan === filterAngkatan
-    return matchCategory && matchName && matchStatus && matchAngkatan
-  })
+  // Filtered & Sorted Bills
+  const filteredBills = useMemo(() => {
+    // 1. Filter
+    const result = bills.filter(bill => {
+      const baseName = getBaseJenisTagihan(bill.jenis_tagihan)
+      const matchCategory = activeCategoryTab === 'Semua' || baseName === activeCategoryTab
+      const matchName = bill.students?.nama.toLowerCase().includes(searchName.toLowerCase())
+      const matchStatus = filterStatus === 'all' || bill.status === filterStatus
+      const matchAngkatan = filterAngkatan === 'all' || bill.students?.angkatan === filterAngkatan
+      const matchKelas = filterKelas === 'all' || bill.students?.kelas === filterKelas
+      return matchCategory && matchName && matchStatus && matchAngkatan && matchKelas
+    })
+
+    // 2. Sort
+    if (sortBy === 'name_asc') {
+      result.sort((a, b) => (a.students?.nama || '').localeCompare(b.students?.nama || ''))
+    } else if (sortBy === 'name_desc') {
+      result.sort((a, b) => (b.students?.nama || '').localeCompare(a.students?.nama || ''))
+    } else {
+      // newest: order by created_at descending
+      result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    }
+    
+    return result
+  }, [bills, searchName, filterStatus, filterAngkatan, filterKelas, activeCategoryTab, sortBy])
 
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchName, filterAngkatan, filterStatus, activeCategoryTab])
+  }, [searchName, filterAngkatan, filterKelas, filterStatus, activeCategoryTab, sortBy])
 
   // Pagination calculation
   const totalItems = filteredBills.length
@@ -1216,8 +1234,8 @@ export default function ManageTagihan() {
             )}
 
             {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1 space-y-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+              <div className="space-y-1">
                 <Label htmlFor="search">Cari Siswa</Label>
                 <Input 
                   id="search" 
@@ -1226,7 +1244,21 @@ export default function ManageTagihan() {
                   onChange={(e) => setSearchName(e.target.value)}
                 />
               </div>
-              <div className="w-full sm:w-48 space-y-1">
+              <div className="space-y-1">
+                <Label htmlFor="kelasFilter">Filter Kelas</Label>
+                <select 
+                  id="kelasFilter"
+                  value={filterKelas}
+                  onChange={(e) => setFilterKelas(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  <option value="all">Semua Kelas</option>
+                  {uniqueKelas.map(k => (
+                    <option key={k} value={k}>Kelas {k}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1">
                 <Label htmlFor="angkatanFilter">Filter Angkatan</Label>
                 <select 
                   id="angkatanFilter"
@@ -1240,7 +1272,7 @@ export default function ManageTagihan() {
                   ))}
                 </select>
               </div>
-              <div className="w-full sm:w-48 space-y-1">
+              <div className="space-y-1">
                 <Label htmlFor="statusFilter">Filter Status</Label>
                 <select 
                   id="statusFilter"
@@ -1252,6 +1284,19 @@ export default function ManageTagihan() {
                   <option value="unpaid">Belum Bayar</option>
                   <option value="partial">Bayar Sebagian</option>
                   <option value="paid">Lunas</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="sortFilter">Urutkan Nama</Label>
+                <select 
+                  id="sortFilter"
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  <option value="newest">Terbaru (Default)</option>
+                  <option value="name_asc">Nama A - Z</option>
+                  <option value="name_desc">Nama Z - A</option>
                 </select>
               </div>
             </div>
