@@ -94,8 +94,12 @@ export default function Settings() {
 
     try {
       // 1. Upload ke Cloudinary
-      const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
-      const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
+      const cleanEnvVar = (val: any) => {
+        if (!val) return ''
+        return String(val).replace(/^["']|["']$/g, '').trim()
+      }
+      const cloudName = cleanEnvVar(import.meta.env.VITE_CLOUDINARY_CLOUD_NAME)
+      const uploadPreset = cleanEnvVar(import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET)
 
       const formData = new FormData()
       formData.append('file', file)

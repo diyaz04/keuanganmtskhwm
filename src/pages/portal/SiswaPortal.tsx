@@ -180,8 +180,12 @@ export default function SiswaPortal({ user }: SiswaPortalProps) {
     try {
       // Step 1: Upload file directly to Cloudinary from browser (bypass Edge Function body limit)
       setUploadMessage({ type: 'info', text: 'Mengunggah bukti transfer...' })
-      const cloudinaryCloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
-      const cloudinaryUploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
+      const cleanEnvVar = (val: any) => {
+        if (!val) return ''
+        return String(val).replace(/^["']|["']$/g, '').trim()
+      }
+      const cloudinaryCloudName = cleanEnvVar(import.meta.env.VITE_CLOUDINARY_CLOUD_NAME)
+      const cloudinaryUploadPreset = cleanEnvVar(import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET)
 
       const cloudinaryFormData = new FormData()
       cloudinaryFormData.append('file', file)
