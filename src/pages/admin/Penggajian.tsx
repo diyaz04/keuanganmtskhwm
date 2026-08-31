@@ -274,6 +274,91 @@ export default function Penggajian() {
     }
   }
 
+  const handleReset = async () => {
+    if (!periode) return
+    if (!confirm(`Apakah Anda yakin ingin mereset draf penggajian untuk periode ${periode}? \n\nPotongan dari master data akan dihapus, tetapi data tagihan Koperasi yang sudah di-import akan tetap aman disimpan.`)) return
+
+    setIsLoading(true)
+    try {
+      // 1. Fetch cooperative deduction type IDs
+      const { data: copTypes } = await supabase
+        .from('deduction_types')
+        .select('id')
+        .in('nama', [
+          'Simpanan Pokok',
+          'Simpanan Wajib',
+          'Simpanan Sukarela',
+          'Cicilan Pinjaman',
+          'Jasa Pinjaman',
+          'Sosial Via Cash'
+        ])
+      const copTypeIds = copTypes?.map(t => t.id) || []
+
+      // 2. Fetch all draft payroll records for the current period with their deductions
+      const { data: drafts, error: errDrafts } = await supabase
+        .from('payroll_records')
+        .select(`
+          id,
+          payroll_deductions (
+            id,
+            deduction_type_id,
+            nominal
+          )
+        `)
+        .eq('periode', periode)
+        .eq('status', 'draft')
+
+      if (errDrafts) throw errDrafts
+
+      if (drafts) {
+        for (const record of drafts) {
+          const deductions = record.payroll_deductions || []
+          const copDeds = deductions.filter(d => copTypeIds.includes(d.deduction_type_id))
+          const nonCopDeds = deductions.filter(d => !copTypeIds.includes(d.deduction_type_id))
+
+          // Delete non-cooperative master deductions
+          if (nonCopDeds.length > 0) {
+            const nonCopIds = nonCopDeds.map(d => d.id)
+            const { error: delError } = await supabase
+              .from('payroll_deductions')
+              .delete()
+              .in('id', nonCopIds)
+            if (delError) throw delError
+          }
+
+          // If cooperative deductions exist, keep the record but reset its metrics
+          if (copDeds.length > 0) {
+            const totalCopNominal = copDeds.reduce((sum, d) => sum + Number(d.nominal), 0)
+            const { error: updError } = await supabase
+              .from('payroll_records')
+              .update({
+                gaji_pokok: 0,
+                penghasilan_details: null,
+                total_potongan: totalCopNominal,
+                gaji_bersih: -totalCopNominal
+              })
+              .eq('id', record.id)
+            if (updError) throw updError
+          } else {
+            // Otherwise, delete the record completely
+            const { error: delRecError } = await supabase
+              .from('payroll_records')
+              .delete()
+              .eq('id', record.id)
+            if (delRecError) throw delRecError
+          }
+        }
+      }
+
+      alert('Berhasil mereset proses penggajian! Potongan koperasi tetap aman disimpan.')
+      fetchRecords()
+    } catch (err: any) {
+      alert(`Terjadi kesalahan saat mereset: ${err.message}`)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const handlePublish = async () => {
     if (!periode) return
     if (!confirm(`Anda yakin ingin mempublikasikan gaji periode ${periode}? Setelah dipublish, slip gaji akan muncul di portal guru.`)) return
@@ -517,6 +602,21 @@ export default function Penggajian() {
                   >
                     <Send className="w-5 h-5 mr-2" />
                     Publish {draftsCount > 0 ? `(${draftsCount} Draft)` : ''}
+                  </Button>
+                </div>
+              )}
+
+              {/* Reset button shown if drafts exist */}
+              {draftsCount > 0 && (
+                <div className="mt-6 pt-4 border-t border-slate-100/80">
+                  <Button 
+                    variant="ghost" 
+                    className="w-full text-red-650 hover:bg-red-50 hover:text-red-700 text-xs font-bold transition-all" 
+                    onClick={handleReset}
+                    disabled={isLoading || isGenerating || isPublishing}
+                  >
+                    <X className="w-3.5 h-3.5 mr-2" />
+                    Reset Proses Draf Gaji
                   </Button>
                 </div>
               )}
