@@ -13,7 +13,7 @@ type Payment = {
   status: string
   tanggal_bayar: string
   catatan: string
-  bukti_url: string | null
+  bukti_transfer_url: string | null
   bills: {
     id: string
     jenis_tagihan: string
@@ -54,7 +54,7 @@ export default function RiwayatPembayaran() {
       let query = supabase
         .from('payments')
         .select(`
-          id, bill_id, nominal_dibayar, status, tanggal_bayar, catatan, bukti_url,
+          id, bill_id, nominal_dibayar, status, tanggal_bayar, catatan, bukti_transfer_url,
           bills (
             id, jenis_tagihan, nominal, nominal_terbayar,
             students (
@@ -92,8 +92,8 @@ export default function RiwayatPembayaran() {
     return payments.filter(p => {
       const matchName = p.bills?.students?.nama.toLowerCase().includes(searchName.toLowerCase())
       let matchType = true
-      if (filterType === 'manual') matchType = !p.bukti_url
-      if (filterType === 'online') matchType = !!p.bukti_url
+      if (filterType === 'manual') matchType = !p.bukti_transfer_url
+      if (filterType === 'online') matchType = !!p.bukti_transfer_url
       return matchName && matchType
     })
   }, [payments, searchName, filterType])
@@ -320,10 +320,10 @@ export default function RiwayatPembayaran() {
                       </td>
                       <td className="px-4 py-3 max-w-[200px] truncate text-slate-500">
                         <div className="flex items-center gap-2">
-                          {!p.bukti_url ? (
+                          {!p.bukti_transfer_url ? (
                             <span className="bg-slate-100 text-slate-600 text-[10px] px-2 py-0.5 rounded font-semibold uppercase tracking-wide">Manual</span>
                           ) : (
-                            <a href={p.bukti_url} target="_blank" rel="noreferrer" className="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded font-semibold uppercase tracking-wide hover:underline">
+                            <a href={p.bukti_transfer_url} target="_blank" rel="noreferrer" className="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded font-semibold uppercase tracking-wide hover:underline">
                               Lihat Bukti
                             </a>
                           )}
