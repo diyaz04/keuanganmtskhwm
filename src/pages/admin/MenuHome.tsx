@@ -265,6 +265,7 @@ export default function MenuHome() {
           icon: ReceiptText,
           items: [
             { title: 'Pembuatan & Riwayat Tagihan', description: 'Buat tagihan baru per angkatan atau kelola tunggakan tagihan siswa.', path: '/admin/bills', badge: 'Tagihan' },
+            { title: 'Riwayat Pencatatan Pembayaran', description: 'Pantau, edit, atau batalkan transaksi pembayaran tagihan yang sudah masuk.', path: '/admin/riwayat-pembayaran', badge: 'Transaksi' },
             { title: 'Tagihan Lama & Piutang Alumni', description: 'Pantau tunggakan dan catat piutang untuk siswa yang telah lulus.', path: '/admin/tagihan-lama', badge: 'Alumni' },
             { title: 'Konfigurasi Tagihan', description: 'Atur template jenis tagihan, pengecualian siswa berprestasi, dan keringanan siswa kurang mampu.', path: '/admin/tagihan-config', badge: 'Setting' },
           ]
@@ -307,6 +308,8 @@ export default function MenuHome() {
           category: 'Kelola Tagihan',
           icon: ReceiptText,
           items: [
+            { title: 'Pembuatan & Riwayat Tagihan', description: 'Buat tagihan baru per angkatan atau kelola tunggakan tagihan siswa.', path: '/admin/bills', badge: 'Tagihan' },
+            { title: 'Riwayat Pencatatan Pembayaran', description: 'Pantau, edit, atau batalkan transaksi pembayaran tagihan yang sudah masuk.', path: '/admin/riwayat-pembayaran', badge: 'Transaksi' },
             { title: 'Konfigurasi Tagihan', description: 'Atur template jenis tagihan, pengecualian siswa berprestasi, dan keringanan siswa kurang mampu.', path: '/admin/tagihan-config', badge: 'Setting' },
           ]
         }

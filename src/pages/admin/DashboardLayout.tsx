@@ -18,7 +18,8 @@ import {
   Menu,
   X,
   Bell,
-  UserCog
+  UserCog,
+  History
 } from 'lucide-react'
 
 export default function DashboardLayout() {
@@ -116,6 +117,7 @@ export default function DashboardLayout() {
             { path: '/admin/bendahara', label: 'Verifikasi Pembayaran', icon: Building2 },
             { path: '/admin/payroll', label: 'Penggajian', icon: Wallet },
             { path: '/admin/bills', label: 'Tagihan Siswa', icon: ReceiptText },
+            { path: '/admin/riwayat-pembayaran', label: 'Riwayat Pembayaran', icon: History },
             { path: '/admin/tagihan-lama', label: 'Tagihan Alumni', icon: ReceiptText },
             { path: '/admin/koperasi', label: 'Import Koperasi', icon: FileSpreadsheet },
           ]
@@ -139,6 +141,7 @@ export default function DashboardLayout() {
             { path: '/admin/bendahara', label: 'Verifikasi Pembayaran', icon: Building2 },
             { path: '/admin/payroll', label: 'Penggajian', icon: Wallet },
             { path: '/admin/bills', label: 'Tagihan Siswa', icon: ReceiptText },
+            { path: '/admin/riwayat-pembayaran', label: 'Riwayat Pembayaran', icon: History },
             { path: '/admin/tagihan-lama', label: 'Tagihan Alumni', icon: ReceiptText },
             { path: '/admin/koperasi', label: 'Import Koperasi', icon: FileSpreadsheet },
             { path: '/admin/settings', label: 'Pengaturan', icon: Settings },

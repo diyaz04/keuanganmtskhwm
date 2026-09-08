@@ -10,6 +10,7 @@ import MasterPotongan from "@/pages/admin/MasterPotongan"
 import ImportKoperasi from "@/pages/admin/ImportKoperasi"
 import MasterData from "@/pages/admin/MasterData"
 import ManageTagihan from "@/pages/admin/ManageTagihan"
+import RiwayatPembayaran from "@/pages/admin/RiwayatPembayaran"
 import TagihanLama from "@/pages/admin/TagihanLama"
 import TagihanConfig from "@/pages/admin/TagihanConfig"
 import StudentDetail from "@/pages/admin/StudentDetail"
@@ -145,6 +146,11 @@ function App() {
                 <Route path="/admin/bills" element={
                   <ProtectedRoute allowedRoles={['admin', 'bendahara']}>
                     <ManageTagihan />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/riwayat-pembayaran" element={
+                  <ProtectedRoute allowedRoles={['admin', 'bendahara']}>
+                    <RiwayatPembayaran />
                   </ProtectedRoute>
                 } />
                 <Route path="/admin/tagihan-lama" element={
