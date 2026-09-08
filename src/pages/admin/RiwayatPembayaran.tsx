@@ -88,6 +88,14 @@ export default function RiwayatPembayaran() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startDate, endDate])
 
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchName, startDate, endDate, filterType])
+
   const filteredPayments = useMemo(() => {
     return payments.filter(p => {
       const matchName = p.bills?.students?.nama.toLowerCase().includes(searchName.toLowerCase())
@@ -97,6 +105,13 @@ export default function RiwayatPembayaran() {
       return matchName && matchType
     })
   }, [payments, searchName, filterType])
+
+  const paginatedPayments = useMemo(() => {
+    const start = (currentPage - 1) * pageSize
+    return filteredPayments.slice(start, start + pageSize)
+  }, [filteredPayments, currentPage, pageSize])
+
+  const totalPages = Math.ceil(filteredPayments.length / pageSize)
 
   const handleDelete = async (payment: Payment) => {
     if (!confirm(`Hapus riwayat pembayaran sebesar ${formatCurrency(payment.nominal_dibayar)} untuk ${payment.bills?.students?.nama}? \n\nPenghapusan ini akan mengembalikan sisa tagihan siswa ke status sebelum pembayaran ini dilakukan.`)) return
@@ -275,15 +290,15 @@ export default function RiwayatPembayaran() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left whitespace-nowrap">
+            <table className="w-full text-[13px] text-left whitespace-nowrap">
               <thead className="text-xs text-slate-500 bg-slate-50 uppercase border-b border-slate-200">
                 <tr>
-                  <th className="px-4 py-3 font-semibold">Tanggal</th>
-                  <th className="px-4 py-3 font-semibold">Siswa & Kelas</th>
-                  <th className="px-4 py-3 font-semibold">Jenis Tagihan</th>
-                  <th className="px-4 py-3 font-semibold">Nominal Masuk</th>
-                  <th className="px-4 py-3 font-semibold">Catatan / Bukti</th>
-                  <th className="px-4 py-3 font-semibold text-right">Aksi</th>
+                  <th className="px-3 py-2.5 font-semibold">Tanggal</th>
+                  <th className="px-3 py-2.5 font-semibold">Siswa & Kelas</th>
+                  <th className="px-3 py-2.5 font-semibold">Jenis Tagihan</th>
+                  <th className="px-3 py-2.5 font-semibold">Nominal Masuk</th>
+                  <th className="px-3 py-2.5 font-semibold">Catatan / Bukti</th>
+                  <th className="px-3 py-2.5 font-semibold text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -291,51 +306,51 @@ export default function RiwayatPembayaran() {
                   <tr>
                     <td colSpan={6} className="text-center py-8 text-slate-400">Memuat data riwayat...</td>
                   </tr>
-                ) : filteredPayments.length === 0 ? (
+                ) : paginatedPayments.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="text-center py-8 text-slate-400">Tidak ada riwayat pembayaran yang ditemukan.</td>
                   </tr>
                 ) : (
-                  filteredPayments.map(p => (
+                  paginatedPayments.map(p => (
                     <tr key={p.id} className="hover:bg-slate-50/50">
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-2">
                         <div className="text-slate-700 font-medium">
                           {new Date(p.tanggal_bayar).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
                         </div>
-                        <div className="text-slate-400 text-xs mt-0.5">
+                        <div className="text-slate-400 text-[11px] mt-0.5">
                           {new Date(p.tanggal_bayar).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
                         </div>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-2">
                         <div className="font-bold text-slate-800">{p.bills?.students?.nama}</div>
-                        <div className="text-slate-500 text-xs">Kelas: {p.bills?.students?.kelas}</div>
+                        <div className="text-slate-500 text-[11px]">Kelas: {p.bills?.students?.kelas}</div>
                       </td>
-                      <td className="px-4 py-3 text-slate-600">
+                      <td className="px-3 py-2 text-slate-600">
                         {p.bills?.jenis_tagihan}
                       </td>
-                      <td className="px-4 py-3">
-                        <span className="font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-100">
+                      <td className="px-3 py-2">
+                        <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
                           +{formatCurrency(p.nominal_dibayar)}
                         </span>
                       </td>
-                      <td className="px-4 py-3 max-w-[200px] truncate text-slate-500">
+                      <td className="px-3 py-2 max-w-[180px] truncate text-slate-500">
                         <div className="flex items-center gap-2">
                           {!p.bukti_transfer_url ? (
-                            <span className="bg-slate-100 text-slate-600 text-[10px] px-2 py-0.5 rounded font-semibold uppercase tracking-wide">Manual</span>
+                            <span className="bg-slate-100 text-slate-600 text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase tracking-wide">Manual</span>
                           ) : (
-                            <a href={p.bukti_transfer_url} target="_blank" rel="noreferrer" className="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded font-semibold uppercase tracking-wide hover:underline">
+                            <a href={p.bukti_transfer_url} target="_blank" rel="noreferrer" className="bg-blue-100 text-blue-700 text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase tracking-wide hover:underline">
                               Lihat Bukti
                             </a>
                           )}
-                          <span className="truncate" title={p.catatan}>{p.catatan}</span>
+                          <span className="truncate text-xs" title={p.catatan}>{p.catatan}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-right space-x-2">
-                        <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => openEditModal(p)} title="Edit Nominal/Tanggal">
-                          <Pencil className="h-4 w-4 text-blue-600" />
+                      <td className="px-3 py-2 text-right space-x-1.5">
+                        <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => openEditModal(p)} title="Edit Nominal/Tanggal">
+                          <Pencil className="h-3.5 w-3.5 text-blue-600" />
                         </Button>
-                        <Button variant="outline" size="sm" className="h-8 w-8 p-0 hover:bg-red-50" onClick={() => handleDelete(p)} title="Batalkan/Hapus Pembayaran">
-                          <Trash2 className="h-4 w-4 text-red-500" />
+                        <Button variant="outline" size="sm" className="h-7 w-7 p-0 hover:bg-red-50" onClick={() => handleDelete(p)} title="Batalkan/Hapus Pembayaran">
+                          <Trash2 className="h-3.5 w-3.5 text-red-500" />
                         </Button>
                       </td>
                     </tr>
@@ -344,6 +359,50 @@ export default function RiwayatPembayaran() {
               </tbody>
             </table>
           </div>
+          
+          {/* Pagination Controls */}
+          {!loading && filteredPayments.length > 0 && (
+            <div className="p-4 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-slate-600 bg-slate-50">
+              <div className="flex items-center gap-2">
+                <span>Tampilkan</span>
+                <select 
+                  className="border border-slate-200 rounded px-2 py-1 bg-white text-xs"
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value))
+                    setCurrentPage(1)
+                  }}
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <span>baris per halaman</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="h-8"
+                >
+                  Sebelumnnya
+                </Button>
+                <span className="px-2 text-xs font-medium">Halaman {currentPage} dari {totalPages || 1}</span>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages || totalPages === 0}
+                  className="h-8"
+                >
+                  Selanjutnya
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
