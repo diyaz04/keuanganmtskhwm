@@ -197,7 +197,7 @@ export default function StudentDetail() {
 
   // Summary calculations
   const totalTagihan = bills.reduce((acc, bill) => acc + (bill.nominal || 0), 0)
-  const totalDibayar = bills.reduce((acc, bill) => acc + (bill.status === 'paid' ? (bill.nominal || 0) : 0), 0)
+  const totalDibayar = bills.reduce((acc, bill) => acc + (bill.nominal_terbayar || 0), 0)
   const totalTunggakan = totalTagihan - totalDibayar
 
   const isLunas = bills.length > 0 && totalTunggakan === 0

@@ -96,14 +96,15 @@ export default function AdminDashboard() {
   const monthlyData: Record<string, { gaji: number, pendapatan: number }> = {}
 
   finalBills.forEach(b => {
-    if (b.status === 'paid') {
-      tagihanMasuk += b.nominal
+    const terbayar = b.nominal_terbayar || 0
+    tagihanMasuk += terbayar
+    tagihanOutstanding += (b.nominal - terbayar)
+
+    if (terbayar > 0) {
       const date = new Date(b.created_at)
       const period = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
       if (!monthlyData[period]) monthlyData[period] = { gaji: 0, pendapatan: 0 }
-      monthlyData[period].pendapatan += b.nominal
-    } else {
-      tagihanOutstanding += b.nominal
+      monthlyData[period].pendapatan += terbayar
     }
   })
 
