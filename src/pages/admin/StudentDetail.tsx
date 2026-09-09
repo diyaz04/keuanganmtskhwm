@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { ArrowLeft, Pencil } from 'lucide-react'
+import { ArrowLeft, Pencil, HandCoins } from 'lucide-react'
 
 // Types
 interface Student {
@@ -28,6 +28,7 @@ interface Bill {
   id: string
   jenis_tagihan: string
   nominal: number
+  nominal_terbayar: number
   jatuh_tempo: string
   status: string
   created_at: string
@@ -51,45 +52,93 @@ export default function StudentDetail() {
   const [editStatus, setEditStatus] = useState('aktif')
   const [isSaving, setIsSaving] = useState(false)
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        if (!id) return
+  const fetchData = async () => {
+    try {
+      if (!id) return
+      setLoading(true)
 
-        const { data: studentData, error: studentError } = await supabase
-          .from('students')
-          .select('*')
-          .eq('id', id)
-          .single()
+      const { data: studentData, error: studentError } = await supabase
+        .from('students')
+        .select('*')
+        .eq('id', id)
+        .single()
 
-        if (studentError) throw studentError
-        if (studentData) {
-          setStudent(studentData)
-          setEditNama(studentData.nama || '')
-          setEditNisn(studentData.nisn || '')
-          setEditKelas(studentData.kelas || '')
-          setEditAngkatan(studentData.angkatan || '')
-          setEditNamaWali(studentData.nama_wali || '')
-          setEditStatus(studentData.status || 'aktif')
-        }
-
-        const { data: billsData, error: billsError } = await supabase
-          .from('bills')
-          .select('*, payments(status, tanggal_bayar, nomor_kwitansi)')
-          .eq('student_id', id)
-          .order('created_at', { ascending: false })
-
-        if (billsError) throw billsError
-        setBills(billsData || [])
-      } catch (error) {
-        console.error('Error fetching data:', error)
-      } finally {
-        setLoading(false)
+      if (studentError) throw studentError
+      if (studentData) {
+        setStudent(studentData)
+        setEditNama(studentData.nama || '')
+        setEditNisn(studentData.nisn || '')
+        setEditKelas(studentData.kelas || '')
+        setEditAngkatan(studentData.angkatan || '')
+        setEditNamaWali(studentData.nama_wali || '')
+        setEditStatus(studentData.status || 'aktif')
       }
-    }
 
+      const { data: billsData, error: billsError } = await supabase
+        .from('bills')
+        .select('*, payments(status, tanggal_bayar, nomor_kwitansi)')
+        .eq('student_id', id)
+        .order('created_at', { ascending: false })
+
+      if (billsError) throw billsError
+      setBills(billsData || [])
+    } catch (error) {
+      console.error('Error fetching data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
     fetchData()
   }, [id])
+
+  const [activePaymentBill, setActivePaymentBill] = useState<Bill | null>(null)
+  const [paymentMode, setPaymentMode] = useState<'full' | 'partial'>('full')
+  const [partialAmount, setPartialAmount] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  const processPayment = async () => {
+    if (!activePaymentBill) return
+    const bill = activePaymentBill
+    setSubmitting(true)
+    try {
+      const sisa = bill.nominal - (bill.nominal_terbayar || 0)
+      let payAmount = sisa
+      
+      if (paymentMode === 'partial') {
+        payAmount = parseFloat(partialAmount)
+        if (isNaN(payAmount) || payAmount <= 0) throw new Error('Nominal tidak valid')
+        if (payAmount > sisa) throw new Error('Nominal melebihi sisa tagihan')
+      }
+
+      const newTerbayar = (bill.nominal_terbayar || 0) + payAmount
+      const newStatus = newTerbayar >= bill.nominal ? 'paid' : 'partial'
+
+      const { error: paymentError } = await supabase.from('payments').insert({
+        bill_id: bill.id,
+        nominal_dibayar: payAmount,
+        status: 'approved',
+        tanggal_bayar: new Date().toISOString(),
+        catatan: paymentMode === 'full' ? 'Lunas bayar manual ke bendahara madrasah' : 'Cicilan bayar manual ke bendahara madrasah',
+      })
+      if (paymentError) throw paymentError
+
+      const { error: billError } = await supabase.from('bills').update({
+        nominal_terbayar: newTerbayar,
+        status: newStatus
+      }).eq('id', bill.id)
+      if (billError) throw billError
+      
+      alert('Pembayaran berhasil dicatat.')
+      setActivePaymentBill(null)
+      fetchData()
+    } catch (err: any) {
+      alert(`Gagal memproses pembayaran: ${err.message}`)
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -283,6 +332,7 @@ export default function StudentDetail() {
                     <th className="px-4 py-3">Tanggal Dibuat</th>
                     <th className="px-4 py-3">Status</th>
                     <th className="px-4 py-3">Tanggal Bayar</th>
+                    <th className="px-4 py-3 text-right">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -308,6 +358,23 @@ export default function StudentDetail() {
                         <td className="px-4 py-4 text-muted-foreground">
                           {bill.status === 'paid' && paymentDate ? formatDate(paymentDate) : '-'}
                         </td>
+                        <td className="px-4 py-4 text-right">
+                          {bill.status !== 'paid' && (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 h-8"
+                              onClick={() => {
+                                setActivePaymentBill(bill)
+                                setPaymentMode('full')
+                                setPartialAmount('')
+                              }}
+                            >
+                              <HandCoins className="w-4 h-4 mr-1.5" />
+                              Bayar
+                            </Button>
+                          )}
+                        </td>
                       </tr>
                     )
                   })}
@@ -317,6 +384,68 @@ export default function StudentDetail() {
           )}
         </CardContent>
       </Card>
+
+      {/* Payment Modal */}
+      {activePaymentBill && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200 my-8">
+            <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
+              <div>
+                <h3 className="font-bold text-lg text-gray-900">Bayar Manual Tagihan</h3>
+                <p className="text-sm text-gray-500">{activePaymentBill.jenis_tagihan}</p>
+              </div>
+            </div>
+            
+            <div className="p-6 space-y-5">
+              <div className="flex bg-gray-100 p-1 rounded-lg">
+                <label className={`flex-1 text-center py-2 rounded-md cursor-pointer transition-colors ${paymentMode === 'full' ? 'bg-white shadow-sm font-bold text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
+                  <input type="radio" name="paymentMode" className="sr-only" checked={paymentMode === 'full'} onChange={() => setPaymentMode('full')} />
+                  Lunas Penuh
+                </label>
+                <label className={`flex-1 text-center py-2 rounded-md cursor-pointer transition-colors ${paymentMode === 'partial' ? 'bg-white shadow-sm font-bold text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
+                  <input type="radio" name="paymentMode" className="sr-only" checked={paymentMode === 'partial'} onChange={() => setPaymentMode('partial')} />
+                  Cicilan / Sebagian
+                </label>
+              </div>
+
+              {paymentMode === 'full' && (
+                <div className="bg-gray-50 p-4 rounded-lg border text-center">
+                  <p className="text-sm text-gray-500 mb-1">Total Sisa Tagihan</p>
+                  <p className="text-2xl font-bold text-gray-900">Rp {(activePaymentBill.nominal - (activePaymentBill.nominal_terbayar || 0)).toLocaleString('id-ID')}</p>
+                </div>
+              )}
+
+              {paymentMode === 'partial' && (
+                <div className="space-y-2">
+                  <Label htmlFor="partialAmount">Nominal Cicilan (Rp)</Label>
+                  <Input 
+                    id="partialAmount" 
+                    type="number" 
+                    placeholder="Contoh: 50000"
+                    value={partialAmount}
+                    onChange={(e) => setPartialAmount(e.target.value)}
+                    max={activePaymentBill.nominal - (activePaymentBill.nominal_terbayar || 0)}
+                  />
+                  <p className="text-xs text-gray-500">
+                    Sisa tagihan maksimal: Rp {(activePaymentBill.nominal - (activePaymentBill.nominal_terbayar || 0)).toLocaleString('id-ID')}
+                  </p>
+                </div>
+              )}
+
+            </div>
+            
+            <div className="p-4 bg-gray-50 border-t flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setActivePaymentBill(null)} disabled={submitting}>
+                Batal
+              </Button>
+              <Button onClick={processPayment} disabled={submitting || (paymentMode === 'partial' && !partialAmount)}>
+                {submitting ? 'Memproses...' : 'Proses Pembayaran'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Edit Student Modal */}
       {isEditModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">

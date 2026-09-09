@@ -648,14 +648,17 @@ export default function ManageTagihan() {
       const { error: paymentError } = await supabase.from('payments').insert(paymentsToInsert)
       if (paymentError) throw paymentError
 
-      const updates = billsToPay.map(bill => 
-        supabase.from('bills').update({
-          nominal_terbayar: bill.nominal,
-          status: 'paid'
-        }).eq('id', bill.id)
-      )
-      
-      await Promise.all(updates)
+      const upsertData = billsToPay.map(bill => {
+          const { students, ...rest } = bill;
+          return {
+            ...rest,
+            nominal_terbayar: bill.nominal,
+            status: 'paid'
+          };
+        });
+        
+        const { error: billError } = await supabase.from('bills').upsert(upsertData)
+        if (billError) throw billError;
 
       alert('Pembayaran manual massal berhasil dicatat.')
       setSelectedBills(new Set())
