@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Heart, Settings, Ban, Download } from 'lucide-react'
+import { Heart, Settings, Ban, Download, FileSpreadsheet, CheckCircle2, AlertCircle, RefreshCw, X } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { cn } from '@/lib/utils'
 
@@ -57,6 +57,36 @@ const formatCurrency = (amount: number) => {
 const getBaseJenisTagihan = (jenis: string) => {
   const match = jenis.match(/^(.*?)\s*\(.*?\)$/)
   return match ? match[1].trim() : jenis.trim()
+}
+
+const parseRupiahInput = (val: any): number => {
+  if (typeof val === 'number') return isNaN(val) ? 0 : Math.round(val)
+  if (!val) return 0
+  let str = val.toString().trim()
+  str = str.replace(/^(Rp\.?|IDR)\s*/i, '').trim()
+  if (str.includes('.') && !str.includes(',')) {
+    const parts = str.split('.')
+    if (parts.slice(1).every((p: string) => p.length === 3)) {
+      str = str.replace(/\./g, '')
+    } else {
+      str = str.replace(/\./g, '')
+    }
+  } else if (str.includes(',') && str.includes('.')) {
+    if (str.lastIndexOf(',') > str.lastIndexOf('.')) {
+      str = str.replace(/\./g, '').replace(',', '.')
+    } else {
+      str = str.replace(/,/g, '')
+    }
+  } else if (str.includes(',') && !str.includes('.')) {
+    const parts = str.split(',')
+    if (parts.slice(1).every((p: string) => p.length === 3)) {
+      str = str.replace(/,/g, '')
+    } else {
+      str = str.replace(',', '.')
+    }
+  }
+  const num = parseFloat(str.replace(/[^0-9.-]/g, ''))
+  return isNaN(num) ? 0 : Math.round(num)
 }
 
 export default function ManageTagihan() {
@@ -122,6 +152,30 @@ export default function ManageTagihan() {
     sisa_tagihan: true,
     status: true
   })
+
+  // Import Progres Pembayaran State
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
+  const [selectedImportJenis, setSelectedImportJenis] = useState('')
+  const [selectedImportKelas, setSelectedImportKelas] = useState('all')
+  const [importFile, setImportFile] = useState<File | null>(null)
+  const [importParsing, setImportParsing] = useState(false)
+  const [importPreviewData, setImportPreviewData] = useState<Array<{
+    id: string
+    bill: Bill
+    nisn: string
+    nama: string
+    kelas: string
+    jenisTagihan: string
+    totalTagihan: number
+    sudahTerbayar: number
+    sisaTagihan: number
+    nominalBayar: number
+    sisaSetelahBayar: number
+    statusAkhir: 'paid' | 'partial' | 'unpaid'
+    keterangan: string
+    validStatus: 'valid' | 'warning' | 'skipped' | 'not_found'
+    warningMessage?: string
+  }>>([])
 
   useEffect(() => {
     fetchData()
@@ -417,6 +471,275 @@ export default function ManageTagihan() {
     XLSX.writeFile(wb, fileName)
     
     setIsExportModalOpen(false)
+  }
+
+  // ── Import Progres Pembayaran Handlers ──
+  const handleDownloadPaymentTemplate = () => {
+    if (!selectedImportJenis) {
+      alert('Silakan pilih jenis tagihan terlebih dahulu.')
+      return
+    }
+
+    let targetBills = bills.filter(b => b.jenis_tagihan === selectedImportJenis)
+    if (selectedImportKelas !== 'all') {
+      targetBills = targetBills.filter(b => b.students?.kelas === selectedImportKelas)
+    }
+
+    if (targetBills.length === 0) {
+      alert(`Tidak ada siswa dengan tagihan "${selectedImportJenis}" ${selectedImportKelas !== 'all' ? `di kelas ${selectedImportKelas}` : ''}.`)
+      return
+    }
+
+    // Sort by Kelas then Nama
+    const sorted = [...targetBills].sort((a, b) => {
+      const kA = a.students?.kelas || ''
+      const kB = b.students?.kelas || ''
+      if (kA !== kB) return kA.localeCompare(kB)
+      return (a.students?.nama || '').localeCompare(b.students?.nama || '')
+    })
+
+    const templateRows = sorted.map((b, idx) => ({
+      'No': idx + 1,
+      'ID Tagihan': b.id,
+      'NISN': b.students?.nisn || '-',
+      'Nama Siswa': b.students?.nama || '-',
+      'Kelas': b.students?.kelas || '-',
+      'Angkatan': b.students?.angkatan || '-',
+      'Jenis Tagihan': b.jenis_tagihan,
+      'Total Tagihan': b.nominal,
+      'Sudah Terbayar': b.nominal_terbayar || 0,
+      'Sisa Tagihan': b.nominal - (b.nominal_terbayar || 0),
+      'Nominal Bayar Baru': 0,
+      'Keterangan': ''
+    }))
+
+    const wb = XLSX.utils.book_new()
+    const ws = XLSX.utils.json_to_sheet(templateRows)
+    ws['!cols'] = [
+      { wch: 6 },  // No
+      { wch: 38 }, // ID Tagihan
+      { wch: 16 }, // NISN
+      { wch: 28 }, // Nama Siswa
+      { wch: 10 }, // Kelas
+      { wch: 10 }, // Angkatan
+      { wch: 28 }, // Jenis Tagihan
+      { wch: 16 }, // Total Tagihan
+      { wch: 16 }, // Sudah Terbayar
+      { wch: 16 }, // Sisa Tagihan
+      { wch: 20 }, // Nominal Bayar Baru
+      { wch: 25 }, // Keterangan
+    ]
+    XLSX.utils.book_append_sheet(wb, ws, 'Template Pembayaran')
+
+    const safeName = selectedImportJenis.replace(/[^a-zA-Z0-9_-]/g, '_')
+    const kelasName = selectedImportKelas !== 'all' ? `_Kelas_${selectedImportKelas}` : ''
+    const fileName = `Template_Pembayaran_${safeName}${kelasName}.xlsx`
+    XLSX.writeFile(wb, fileName)
+  }
+
+  const handleImportFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImportFile(file)
+    setImportParsing(true)
+
+    const reader = new FileReader()
+    reader.onload = (evt) => {
+      try {
+        const data = evt.target?.result
+        const wb = XLSX.read(data, { type: 'binary' })
+        const wsName = wb.SheetNames[0]
+        const ws = wb.Sheets[wsName]
+        const rawRows = XLSX.utils.sheet_to_json(ws) as any[]
+
+        if (!rawRows || rawRows.length === 0) {
+          alert('File Excel kosong atau tidak terbaca.')
+          setImportParsing(false)
+          return
+        }
+
+        const parsed = rawRows.map((row, index) => {
+          const idTagihan = (row['ID Tagihan'] || row['id_tagihan'] || row['ID'] || '').toString().trim()
+          const nisn = (row['NISN'] || row['nisn'] || '').toString().trim()
+          const nama = (row['Nama Siswa'] || row['Nama'] || row['nama'] || '').toString().trim()
+          const kelas = (row['Kelas'] || row['kelas'] || '').toString().trim()
+          const jenisTagihan = (row['Jenis Tagihan'] || row['jenis_tagihan'] || selectedImportJenis || '').toString().trim()
+          const keterangan = (row['Keterangan'] || row['Catatan'] || row['keterangan'] || '').toString().trim()
+
+          const rawBayar = row['Nominal Bayar Baru'] ?? row['Nominal Bayar Baru (Rp)'] ?? row['Nominal Bayar'] ?? row['Nominal Dibayar'] ?? row['Bayar'] ?? row['Jumlah Bayar'] ?? 0
+          const nominalBayar = parseRupiahInput(rawBayar)
+
+          // Find bill
+          let matchedBill: Bill | undefined
+          if (idTagihan) {
+            matchedBill = bills.find(b => b.id === idTagihan)
+          }
+          if (!matchedBill && nisn) {
+            matchedBill = bills.find(b => b.students?.nisn === nisn && b.jenis_tagihan === (jenisTagihan || selectedImportJenis))
+            if (!matchedBill) {
+              matchedBill = bills.find(b => b.students?.nisn === nisn && getBaseJenisTagihan(b.jenis_tagihan) === getBaseJenisTagihan(jenisTagihan || selectedImportJenis))
+            }
+          }
+          if (!matchedBill && nama) {
+            matchedBill = bills.find(b => b.students?.nama?.toLowerCase().trim() === nama.toLowerCase().trim() && b.jenis_tagihan === (jenisTagihan || selectedImportJenis))
+          }
+
+          if (!matchedBill) {
+            return {
+              id: `err-${index}`,
+              bill: null as any,
+              nisn,
+              nama: nama || 'Tidak Diketahui',
+              kelas: kelas || '-',
+              jenisTagihan,
+              totalTagihan: 0,
+              sudahTerbayar: 0,
+              sisaTagihan: 0,
+              nominalBayar,
+              sisaSetelahBayar: 0,
+              statusAkhir: 'unpaid' as const,
+              keterangan,
+              validStatus: 'not_found' as const,
+              warningMessage: `Siswa/Tagihan tidak ditemukan di database`
+            }
+          }
+
+          const sisa = matchedBill.nominal - (matchedBill.nominal_terbayar || 0)
+
+          if (nominalBayar <= 0) {
+            return {
+              id: matchedBill.id,
+              bill: matchedBill,
+              nisn: matchedBill.students?.nisn || nisn,
+              nama: matchedBill.students?.nama || nama,
+              kelas: matchedBill.students?.kelas || kelas,
+              jenisTagihan: matchedBill.jenis_tagihan,
+              totalTagihan: matchedBill.nominal,
+              sudahTerbayar: matchedBill.nominal_terbayar || 0,
+              sisaTagihan: sisa,
+              nominalBayar: 0,
+              sisaSetelahBayar: sisa,
+              statusAkhir: matchedBill.status,
+              keterangan,
+              validStatus: 'skipped' as const,
+              warningMessage: nominalBayar < 0 ? 'Nominal tidak boleh minus' : 'Nominal 0 (Dilewati)'
+            }
+          }
+
+          if (sisa <= 0) {
+            return {
+              id: matchedBill.id,
+              bill: matchedBill,
+              nisn: matchedBill.students?.nisn || nisn,
+              nama: matchedBill.students?.nama || nama,
+              kelas: matchedBill.students?.kelas || kelas,
+              jenisTagihan: matchedBill.jenis_tagihan,
+              totalTagihan: matchedBill.nominal,
+              sudahTerbayar: matchedBill.nominal,
+              sisaTagihan: 0,
+              nominalBayar: 0,
+              sisaSetelahBayar: 0,
+              statusAkhir: 'paid' as const,
+              keterangan,
+              validStatus: 'skipped' as const,
+              warningMessage: 'Tagihan ini sudah lunas 100%'
+            }
+          }
+
+          const actualPay = Math.min(nominalBayar, sisa)
+          const sisaAfter = sisa - actualPay
+          const isWarning = nominalBayar > sisa
+          const newStatus: 'paid' | 'partial' = sisaAfter <= 0 ? 'paid' : 'partial'
+
+          return {
+            id: matchedBill.id,
+            bill: matchedBill,
+            nisn: matchedBill.students?.nisn || nisn,
+            nama: matchedBill.students?.nama || nama,
+            kelas: matchedBill.students?.kelas || kelas,
+            jenisTagihan: matchedBill.jenis_tagihan,
+            totalTagihan: matchedBill.nominal,
+            sudahTerbayar: matchedBill.nominal_terbayar || 0,
+            sisaTagihan: sisa,
+            nominalBayar: actualPay,
+            sisaSetelahBayar: sisaAfter,
+            statusAkhir: newStatus,
+            keterangan,
+            validStatus: isWarning ? ('warning' as const) : ('valid' as const),
+            warningMessage: isWarning ? `Nominal Rp ${nominalBayar.toLocaleString('id-ID')} melebihi sisa Rp ${sisa.toLocaleString('id-ID')} (disesuaikan otomatis menjadi Rp ${actualPay.toLocaleString('id-ID')})` : undefined
+          }
+        })
+
+        setImportPreviewData(parsed)
+      } catch (err: any) {
+        alert(`Gagal memproses file Excel: ${err.message}`)
+      } finally {
+        setImportParsing(false)
+      }
+    }
+    reader.readAsBinaryString(file)
+  }
+
+  const handleSubmitImportPayments = async () => {
+    const readyRows = importPreviewData.filter(r => (r.validStatus === 'valid' || r.validStatus === 'warning') && r.nominalBayar > 0 && r.bill)
+    if (readyRows.length === 0) {
+      alert('Tidak ada data pembayaran yang valid untuk diproses.')
+      return
+    }
+
+    const totalAmount = readyRows.reduce((acc, r) => acc + r.nominalBayar, 0)
+    if (!window.confirm(`Konfirmasi pembayaran untuk ${readyRows.length} siswa dengan total ${formatCurrency(totalAmount)}?\n\nData pembayaran akan langsung dicatat ke riwayat dan saldo tagihan siswa otomatis berkurang.`)) {
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      // 1. Insert into payments table
+      const paymentsToInsert = readyRows.map(r => ({
+        bill_id: r.bill.id,
+        nominal_dibayar: r.nominalBayar,
+        status: 'approved',
+        tanggal_bayar: new Date().toISOString(),
+        catatan: r.keterangan ? `${r.keterangan} (Import Excel)` : `Lunas/Cicilan via Import Excel (${r.bill.jenis_tagihan})`,
+      }))
+
+      const { error: payError } = await supabase.from('payments').insert(paymentsToInsert)
+      if (payError) throw payError
+
+      // 2. Group by bill.id for bills table upsert
+      const billMap = new Map<string, { bill: Bill, addedNominal: number }>()
+      for (const r of readyRows) {
+        const existing = billMap.get(r.bill.id)
+        if (existing) {
+          existing.addedNominal += r.nominalBayar
+        } else {
+          billMap.set(r.bill.id, { bill: r.bill, addedNominal: r.nominalBayar })
+        }
+      }
+
+      const upsertData = Array.from(billMap.values()).map(item => {
+        const { students, ...rest } = item.bill
+        const newTerbayar = (item.bill.nominal_terbayar || 0) + item.addedNominal
+        return {
+          ...rest,
+          nominal_terbayar: newTerbayar,
+          status: (newTerbayar >= item.bill.nominal ? 'paid' : 'partial') as 'paid' | 'partial'
+        }
+      })
+
+      const { error: billError } = await supabase.from('bills').upsert(upsertData)
+      if (billError) throw billError
+
+      alert(`Berhasil memproses pembayaran untuk ${readyRows.length} siswa dengan total ${formatCurrency(totalAmount)}!`)
+      setIsImportModalOpen(false)
+      setImportPreviewData([])
+      setImportFile(null)
+      fetchData()
+    } catch (err: any) {
+      alert(`Gagal menyimpan import pembayaran: ${err.message}`)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const handleTarikMassal = async (e: React.FormEvent) => {
@@ -784,8 +1107,31 @@ export default function ManageTagihan() {
   const uniqueAngkatans = Array.from(new Set(students.map(s => s.angkatan).filter(Boolean))).sort()
   const uniqueKelas = Array.from(new Set(students.map(s => s.kelas).filter(Boolean))).sort()
   const uniqueCategories = Array.from(new Set(bills.map(b => getBaseJenisTagihan(b.jenis_tagihan)))).sort()
+  const allExactJenisTagihan = Array.from(new Set(bills.map(b => b.jenis_tagihan))).sort()
   const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
   const years = Array.from({length: 5}, (_, i) => new Date().getFullYear() - 1 + i)
+
+  // Bill stats for Import Template
+  const billTypeStats = useMemo(() => {
+    const stats: Record<string, { total: number; unpaid: number }> = {}
+    bills.forEach(b => {
+      if (!stats[b.jenis_tagihan]) {
+        stats[b.jenis_tagihan] = { total: 0, unpaid: 0 }
+      }
+      stats[b.jenis_tagihan].total++
+      if (b.status !== 'paid') {
+        stats[b.jenis_tagihan].unpaid++
+      }
+    })
+    return stats
+  }, [bills])
+
+  const readyRows = useMemo(() => importPreviewData.filter(r => (r.validStatus === 'valid' || r.validStatus === 'warning') && r.nominalBayar > 0 && r.bill), [importPreviewData])
+  const skippedRows = useMemo(() => importPreviewData.filter(r => r.validStatus === 'skipped'), [importPreviewData])
+  const errorRows = useMemo(() => importPreviewData.filter(r => r.validStatus === 'not_found'), [importPreviewData])
+  const totalImportNominal = useMemo(() => readyRows.reduce((sum, r) => sum + r.nominalBayar, 0), [readyRows])
+  const newPaidCount = useMemo(() => readyRows.filter(r => r.statusAkhir === 'paid').length, [readyRows])
+  const newPartialCount = useMemo(() => readyRows.filter(r => r.statusAkhir === 'partial').length, [readyRows])
 
   return (
     <div className="p-0 md:p-6 space-y-6 max-w-7xl mx-auto">
@@ -796,13 +1142,30 @@ export default function ManageTagihan() {
             Kelola data tagihan siswa, buat tagihan baru, dan pantau status pembayaran.
           </p>
         </div>
-        <Link
-          to="/admin/tagihan-config"
-          className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 rounded-xl px-4 py-2.5 transition-colors"
-        >
-          <Settings className="w-4 h-4" />
-          Konfigurasi Tagihan
-        </Link>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            type="button"
+            onClick={() => {
+              const defaultJenis = (activeCategoryTab !== 'Semua' ? (allExactJenisTagihan.find(j => getBaseJenisTagihan(j) === activeCategoryTab) || allExactJenisTagihan[0]) : allExactJenisTagihan[0]) || ''
+              setSelectedImportJenis(defaultJenis)
+              setSelectedImportKelas('all')
+              setImportFile(null)
+              setImportPreviewData([])
+              setIsImportModalOpen(true)
+            }}
+            className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 transition-colors shadow-sm"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            Import Progres Bayar
+          </Button>
+          <Link
+            to="/admin/tagihan-config"
+            className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 transition-colors"
+          >
+            <Settings className="w-4 h-4" />
+            Konfigurasi Tagihan
+          </Link>
+        </div>
       </div>
 
       {/* Mobile Section Tabs */}
@@ -1196,22 +1559,41 @@ export default function ManageTagihan() {
           "md:col-span-2",
           activeMobileSectionTab === 'daftar' ? 'block' : 'hidden md:block'
         )}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 space-y-0 pb-4">
             <div>
               <CardTitle>Daftar Tagihan</CardTitle>
               <CardDescription>Daftar semua tagihan siswa dan status pembayarannya.</CardDescription>
             </div>
-            <Button
-              onClick={() => {
-                setExportCategory(activeCategoryTab)
-                setIsExportModalOpen(true)
-              }}
-              variant="outline"
-              className="flex items-center gap-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50"
-            >
-              <Download className="h-4 w-4" />
-              Ekspor Laporan
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                onClick={() => {
+                  const defaultJenis = (activeCategoryTab !== 'Semua' ? (allExactJenisTagihan.find(j => getBaseJenisTagihan(j) === activeCategoryTab) || allExactJenisTagihan[0]) : allExactJenisTagihan[0]) || ''
+                  setSelectedImportJenis(defaultJenis)
+                  setSelectedImportKelas('all')
+                  setImportFile(null)
+                  setImportPreviewData([])
+                  setIsImportModalOpen(true)
+                }}
+                variant="outline"
+                className="flex items-center gap-1.5 sm:gap-2 border-emerald-300 text-emerald-700 bg-emerald-50/60 hover:bg-emerald-100 text-xs sm:text-sm h-9"
+              >
+                <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+                Import Progres Bayar
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  setExportCategory(activeCategoryTab)
+                  setIsExportModalOpen(true)
+                }}
+                variant="outline"
+                className="flex items-center gap-1.5 sm:gap-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50 text-xs sm:text-sm h-9"
+              >
+                <Download className="h-4 w-4" />
+                Ekspor Laporan
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             
@@ -1761,6 +2143,281 @@ export default function ManageTagihan() {
                 <Download className="h-4 w-4" />
                 Unduh Excel (.xlsx)
               </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Import Progres Pembayaran Modal */}
+      {isImportModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 my-6">
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 border-b bg-gradient-to-r from-emerald-50 via-teal-50 to-white flex justify-between items-center">
+              <div>
+                <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2 text-emerald-950">
+                  <FileSpreadsheet className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-600 flex-shrink-0" />
+                  Import Progres Pembayaran (Excel)
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-600 mt-1">
+                  Unduh template Excel per jenis tagihan, isi kolom pembayaran, lalu upload untuk update saldo &amp; riwayat secara otomatis.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsImportModalOpen(false)
+                  setImportFile(null)
+                  setImportPreviewData([])
+                }}
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-4 sm:p-6 space-y-5 max-h-[72vh] overflow-y-auto">
+              {/* Step 1: Download Template */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 sm:p-5 space-y-4">
+                <div className="flex items-center gap-2 text-slate-800 font-semibold text-sm">
+                  <span className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold">1</span>
+                  Pilih Tagihan &amp; Unduh Template Excel
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="importJenisTagihan" className="text-xs font-semibold text-slate-700">Pilih Jenis Tagihan Target</Label>
+                    <select
+                      id="importJenisTagihan"
+                      value={selectedImportJenis}
+                      onChange={(e) => setSelectedImportJenis(e.target.value)}
+                      className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-xs sm:text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      <option value="" disabled>-- Pilih Jenis Tagihan --</option>
+                      {allExactJenisTagihan.map(jenis => {
+                        const stat = billTypeStats[jenis]
+                        return (
+                          <option key={jenis} value={jenis}>
+                            {jenis} {stat ? `(${stat.total} Siswa — ${stat.unpaid} Belum Lunas)` : ''}
+                          </option>
+                        )
+                      })}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="importFilterKelas" className="text-xs font-semibold text-slate-700">Filter Kelas (Opsional)</Label>
+                    <select
+                      id="importFilterKelas"
+                      value={selectedImportKelas}
+                      onChange={(e) => setSelectedImportKelas(e.target.value)}
+                      className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-xs sm:text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      <option value="all">Semua Kelas</option>
+                      {uniqueKelas.map(k => (
+                        <option key={k} value={k}>Kelas {k}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-1 border-t border-slate-200/60">
+                  <p className="text-xs text-slate-500">
+                    💡 Buka Excel yang diunduh, lalu isi angka pada kolom <strong>Nominal Bayar Baru</strong>.
+                  </p>
+                  <Button
+                    type="button"
+                    onClick={handleDownloadPaymentTemplate}
+                    disabled={!selectedImportJenis}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-2 h-9 text-xs sm:text-sm whitespace-nowrap w-full sm:w-auto justify-center shadow-sm"
+                  >
+                    <Download className="w-4 h-4" />
+                    Unduh Template Excel (.xlsx)
+                  </Button>
+                </div>
+              </div>
+
+              {/* Step 2: Upload File & Preview */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 sm:p-5 space-y-4">
+                <div className="flex items-center gap-2 text-slate-800 font-semibold text-sm">
+                  <span className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold">2</span>
+                  Upload File Excel yang Sudah Diisi
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center gap-3">
+                  <div className="relative flex-1 w-full">
+                    <input
+                      type="file"
+                      accept=".xlsx, .xls"
+                      onChange={handleImportFileChange}
+                      disabled={importParsing || submitting}
+                      className="block w-full text-xs sm:text-sm text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-emerald-100 file:text-emerald-700 hover:file:bg-emerald-200 cursor-pointer border rounded-md p-1 bg-white"
+                    />
+                  </div>
+                  {importFile && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setImportFile(null)
+                        setImportPreviewData([])
+                      }}
+                      className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      Reset File
+                    </Button>
+                  )}
+                </div>
+
+                {importParsing && (
+                  <div className="text-center py-5 text-sm text-emerald-700 flex items-center justify-center gap-2">
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Membaca dan memverifikasi data file Excel...
+                  </div>
+                )}
+
+                {/* Preview Results */}
+                {!importParsing && importPreviewData.length > 0 && (
+                  <div className="space-y-4 pt-1">
+                    {/* Stat metrics */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-2.5 sm:p-3">
+                        <p className="text-[11px] font-medium text-emerald-700">Siswa Akan Bayar</p>
+                        <p className="text-lg sm:text-xl font-bold text-emerald-900 mt-0.5">{readyRows.length}</p>
+                      </div>
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-2.5 sm:p-3">
+                        <p className="text-[11px] font-medium text-blue-700">Total Uang Masuk</p>
+                        <p className="text-sm sm:text-lg font-bold text-blue-900 mt-0.5 truncate">{formatCurrency(totalImportNominal)}</p>
+                      </div>
+                      <div className="bg-emerald-50/60 border border-emerald-100 rounded-lg p-2.5 sm:p-3">
+                        <p className="text-[11px] font-medium text-emerald-700">Lunas / Cicilan</p>
+                        <p className="text-xs sm:text-sm font-semibold text-emerald-900 mt-1 truncate">
+                          <span className="text-emerald-700 font-bold">{newPaidCount}</span> Lunas · <span className="text-amber-700 font-bold">{newPartialCount}</span> Cicil
+                        </p>
+                      </div>
+                      <div className="bg-slate-100 border border-slate-200 rounded-lg p-2.5 sm:p-3">
+                        <p className="text-[11px] font-medium text-slate-600">Dilewati (0 / Lunas)</p>
+                        <p className="text-lg sm:text-xl font-bold text-slate-800 mt-0.5">{skippedRows.length}</p>
+                      </div>
+                    </div>
+
+                    {/* Error warning box if any */}
+                    {errorRows.length > 0 && (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-800 flex items-start gap-2">
+                        <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <strong>Perhatian:</strong> Ada {errorRows.length} baris data yang NISN/siswanya tidak cocok dengan tagihan ini dan dilewati otomatis.
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Preview Table of Ready Rows */}
+                    {readyRows.length > 0 ? (
+                      <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
+                        <div className="px-3.5 py-2.5 bg-slate-100 border-b flex justify-between items-center text-xs font-semibold text-slate-700">
+                          <span>Pratinjau Data yang Akan Diproses ({readyRows.length} Siswa)</span>
+                          <span className="text-emerald-700 font-bold">Total: {formatCurrency(totalImportNominal)}</span>
+                        </div>
+                        <div className="max-h-60 overflow-y-auto">
+                          <table className="w-full text-xs text-left">
+                            <thead className="bg-slate-50 border-b sticky top-0 text-slate-600">
+                              <tr>
+                                <th className="px-3 py-2">No</th>
+                                <th className="px-3 py-2">NISN</th>
+                                <th className="px-3 py-2">Nama Siswa</th>
+                                <th className="px-3 py-2">Kelas</th>
+                                <th className="px-3 py-2 text-right">Sisa Lalu</th>
+                                <th className="px-3 py-2 text-right">Nominal Bayar</th>
+                                <th className="px-3 py-2 text-right">Sisa Baru</th>
+                                <th className="px-3 py-2 text-center">Status Baru</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                              {readyRows.map((row, idx) => (
+                                <tr key={row.id || idx} className="hover:bg-slate-50/80">
+                                  <td className="px-3 py-2 text-slate-400">{idx + 1}</td>
+                                  <td className="px-3 py-2 font-mono text-slate-600">{row.nisn}</td>
+                                  <td className="px-3 py-2 font-medium text-slate-900">{row.nama}</td>
+                                  <td className="px-3 py-2 text-slate-600">{row.kelas}</td>
+                                  <td className="px-3 py-2 text-right text-slate-500">{formatCurrency(row.sisaTagihan)}</td>
+                                  <td className="px-3 py-2 text-right font-bold text-emerald-600">
+                                    +{formatCurrency(row.nominalBayar)}
+                                    {row.validStatus === 'warning' && (
+                                      <span className="block text-[10px] text-amber-600 font-normal">Disesuaikan sisa</span>
+                                    )}
+                                  </td>
+                                  <td className="px-3 py-2 text-right font-medium text-slate-700">{formatCurrency(row.sisaSetelahBayar)}</td>
+                                  <td className="px-3 py-2 text-center">
+                                    {row.statusAkhir === 'paid' ? (
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                        LUNAS
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                                        SEBAGIAN
+                                      </span>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-6 border border-dashed rounded-lg bg-white text-slate-500 text-xs">
+                        Tidak ada nominal pembayaran baru (&gt; 0) yang terdeteksi pada file Excel ini.
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 bg-slate-50 border-t flex flex-col sm:flex-row justify-between items-center gap-3">
+              <p className="text-xs text-slate-500 text-center sm:text-left">
+                {readyRows.length > 0 ? (
+                  <span className="text-emerald-700 font-medium">
+                    Siap memproses <strong>{readyRows.length}</strong> pembayaran ({formatCurrency(totalImportNominal)})
+                  </span>
+                ) : (
+                  'Silakan unduh template, isi kolom "Nominal Bayar Baru", lalu upload kembali.'
+                )}
+              </p>
+              <div className="flex gap-2 w-full sm:w-auto justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setIsImportModalOpen(false)
+                    setImportFile(null)
+                    setImportPreviewData([])
+                  }}
+                  disabled={submitting}
+                >
+                  Batal
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleSubmitImportPayments}
+                  disabled={submitting || readyRows.length === 0}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-2"
+                >
+                  {submitting ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      Menyimpan Pembayaran...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      Simpan &amp; Proses Pembayaran ({readyRows.length})
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
